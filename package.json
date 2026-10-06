@@ -1,0 +1,25 @@
+{
+  "name": "velammal-dashboard",
+  "version": "1.0.0",
+  "description": "Velammal School Campus Analysis Dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "db:start": "\"D:\\temp_pgsql\\pgsql\\bin\\pg_ctl.exe\" start -D \"D:\\temp_pgsql\\data\" -l \"D:\\temp_pgsql\\logfile.log\" -o \"-p 54333\" -w",
+    "db:stop": "\"D:\\temp_pgsql\\pgsql\\bin\\pg_ctl.exe\" stop -D \"D:\\temp_pgsql\\data\" -m fast",
+    "seed:auth-users": "node scripts/seed-auth-users.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "connect-mongo": "^6.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "express-session": "^1.19.0",
+    "mongoose": "^9.4.1",
+    "pg": "^8.11.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Report Generator — CODEVYUH 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;0,9..144,700;1,9..144,300&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy:     #1b2e45;
+      --slate:    #3a5572;
+      --steel:    #5a7ea0;
+      --sky:      #8fb4d4;
+      --mist:     #d4e4f0;
+      --bg:       #eef4f9;
+      --card:     #ffffff;
+      --text:     #1b2e45;
+      --muted:    #607d96;
+      --accent:   #2e6da4;
+      --gold:     #c8943a;
+      --success:  #2a7a58;
+      --radius:   18px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 32px 16px;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(90,126,160,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 110%, rgba(46,109,164,0.12) 0%, transparent 55%),
+        linear-gradient(160deg, #dceaf5 0%, #eef4f9 45%, #f5f9fc 100%);
+      font-family: 'DM Sans', system-ui, sans-serif;
+      color: var(--text);
+    }
+
+    /* ── Card shell ── */
+    .shell {
+      width: min(520px, 100%);
+      background: var(--card);
+      border-radius: 28px;
+      overflow: hidden;
+      box-shadow:
+        0 1px 0 rgba(255,255,255,0.8) inset,
+        0 32px 80px rgba(27,46,69,0.16),
+        0 8px 24px rgba(27,46,69,0.08);
+      border: 1px solid rgba(255,255,255,0.7);
+      animation: rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Header strip ── */
+    .header {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--slate) 60%, var(--steel) 100%);
+      padding: 30px 32px 26px;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 90% 20%, rgba(143,180,212,0.25) 0%, transparent 45%),
+        radial-gradient(circle at 10% 80%, rgba(46,109,164,0.3) 0%, transparent 40%);
+    }
+    .header-inner { position: relative; }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 100px;
+      padding: 4px 12px 4px 8px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.85);
+      margin-bottom: 14px;
+    }
+    .badge-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 0 2px rgba(200,148,58,0.35);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 0 2px rgba(200,148,58,0.35); }
+      50%      { box-shadow: 0 0 0 5px rgba(200,148,58,0.12); }
+    }
+
+    .header h1 {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+    .header p {
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.62);
+      font-weight: 400;
+      line-height: 1.5;
+    }
+
+    /* ── Logo row ── */
+    .logo-strip {
+      display: flex;
+      gap: 10px;
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(255,255,255,0.15);
+    }
+    .logo-tile {
+      flex: 1;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 10px;
+      padding: 9px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .logo-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+    }
+    .logo-name {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.9);
+    }
+
+    /* ── Body content ── */
+    .body { padding: 28px 32px 32px; }
+
+    /* Status card */
+    .status-card {
+      background: linear-gradient(135deg, #f0f7ff 0%, #e8f2fb 100%);
+      border: 1px solid var(--mist);
+      border-radius: 14px;
+      padding: 16px 18px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .status-icon {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: var(--accent);
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+    .status-icon svg { width: 18px; height: 18px; }
+    .status-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 2px;
+    }
+    #status-text {
+      font-size: 0.88rem;
+      color: var(--slate);
+      font-weight: 500;
+      line-height: 1.45;
+    }
+
+    /* Progress bar */
+    .progress-wrap {
+      height: 4px;
+      background: var(--mist);
+      border-radius: 100px;
+      margin-bottom: 24px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--sky));
+      border-radius: 100px;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--mist), transparent);
+      margin: 24px 0;
+    }
+
+    /* Info row */
+    .info-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+    .info-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg);
+      border: 1px solid var(--mist);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .info-chip strong {
+      color: var(--navy);
+      font-weight: 700;
+    }
+
+    /* Actions */
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 13px 20px;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      letter-spacing: 0.01em;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #2563a8 0%, var(--steel) 100%);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(37,99,168,0.35), 0 1px 0 rgba(255,255,255,0.15) inset;
+    }
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(37,99,168,0.45);
+    }
+    .btn-primary:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    .btn-primary:disabled {
+      background: linear-gradient(135deg, #8baac8 0%, #a4bcce 100%);
+      box-shadow: none;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .btn-secondary {
+      background: var(--bg);
+      color: var(--slate);
+      border: 1px solid var(--mist);
+      box-shadow: 0 1px 4px rgba(27,46,69,0.06);
+      padding: 13px 16px;
+    }
+    .btn-secondary:hover {
+      background: var(--mist);
+      color: var(--navy);
+    }
+
+    /* Footer note */
+    .footer-note {
+      margin-top: 18px;
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--muted);
+      opacity: 0.7;
+    }
+    .footer-note span { font-weight: 600; color: var(--steel); }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-inner">
+        <div class="badge">
+          <span class="badge-dot"></span>
+          CODEVYUH 2026 — Python Coding Contest
+        </div>
+        <h1>Student Performance<br>Report Generator</h1>
+        <p>Generates a professional, multi-page PDF summary for school leadership and parents.</p>
+
+        <div class="logo-strip">
+          <div class="logo-tile">
+            <div class="logo-label">Technology Partner</div>
+            <div class="logo-name">Tarcin</div>
+          </div>
+          <div class="logo-tile">
+            <div class="logo-label">Academic Partner</div>
+            <div class="logo-name">KTA</div>
+          </div>
+          <div class="logo-tile">
+            <div class="logo-label">School Network</div>
+            <div class="logo-name">Velammal</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="body">
+      <!-- Status -->
+      <div class="status-card">
+        <div class="status-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14,2 14,8 20,8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10,9 9,9 8,9"/>
+          </svg>
+        </div>
+        <div>
+          <div class="status-label">Status</div>
+          <div id="status-text">Preparing report data…</div>
+        </div>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="progress-wrap">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+
+      <!-- Info chips (populated dynamically) -->
+      <div class="info-row" id="info-row" style="display:none;">
+        <div class="info-chip" id="chip-name">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          <strong id="chip-name-val">—</strong>
+        </div>
+        <div class="info-chip" id="chip-rank">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"/></svg>
+          Rank <strong id="chip-rank-val">—</strong>
+        </div>
+        <div class="info-chip" id="chip-score">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/></svg>
+          Avg <strong id="chip-score-val">—</strong>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button class="btn-primary" id="download-btn" type="button" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7,10 12,15 17,10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Download PDF Report
+        </button>
+        <button class="btn-secondary" id="close-btn" type="button" title="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="footer-note">Powered by <span>Tarcin</span></div>
+    </div>
+  </main>
+
+  <script>
+    const statusText = document.getElementById('status-text');
+    const downloadBtn = document.getElementById('download-btn');
+    const closeBtn = document.getElementById('close-btn');
+    const progressBar = document.getElementById('progress-bar');
+    const infoRow = document.getElementById('info-row');
+
+    const params = new URLSearchParams(location.search);
+    const studentId = params.get('student');
+    const autoDownload = params.get('download') === '1';
+
+    const state = {
+      profile: null,
+      breakdown: null,
+      recentSubs: [],
+      milestones: null,
+      milestoneCards: [],
+    };
+
+    function setStatus(message) { statusText.textContent = message; }
+    function setProgress(pct) { progressBar.style.width = pct + '%'; }
+
+    async function apiFetch(endpoint) {
+      const res = await fetch(`/api/parent-view/${endpoint}?studentId=${encodeURIComponent(studentId)}`);
+      if (!res.ok) throw new Error(`Failed to load ${endpoint}`);
+      return res.json();
+    }
+
+    function splitGrade(grade) {
+      const text = String(grade || '').trim();
+      if (!text || text === '—') return { className: '—', section: '—' };
+      const clean = text.replace(/\s+/g, '');
+      let match = clean.match(/^([A-Za-z0-9-]+)[-]([A-Za-z0-9]+)$/);
+      if (match) return { className: match[1], section: match[2] };
+      match = clean.match(/^([0-9IVXivx]+)([A-Za-z][0-9]*)$/);
+      if (match) return { className: match[1], section: match[2].toUpperCase() };
+      return { className: text, section: '—' };
+    }
+
+    function getMilestoneCards(m) {
+      const ns = parseInt(m.total_submissions || 0);
+      const bs = parseInt(m.best_score || 0);
+      const la = parseInt(m.levels_attempted || 0);
+      const ts = parseInt(m.total_score || 0);
+      const all = [
+        { icon:'🚀', name:'First Step',      desc:'Made first submission',              earned: ns >= 1 },
+        { icon:'✨', name:'Starter',          desc:'Completed 3 submissions',            earned: ns >= 3 },
+        { icon:'🔥', name:'On Fire',          desc:'Completed 5 submissions',            earned: ns >= 5 },
+        { icon:'🏃', name:'Challenger',       desc:'Completed 10 submissions',           earned: ns >= 10 },
+        { icon:'💪', name:'Leader',           desc:'Completed 20 submissions',           earned: ns >= 20 },
+        { icon:'🌠', name:'Beyonder',         desc:'Completed 30 submissions',           earned: ns >= 30 },
+        { icon:'⚡', name:'Power User',       desc:'Completed 50 submissions',           earned: ns >= 50 },
+        { icon:'🛤️', name:'Marathoner',      desc:'Completed 75 submissions',           earned: ns >= 75 },
+        { icon:'💯', name:'Centurion',        desc:'Completed 100 submissions',          earned: ns >= 100 },
+        { icon:'📍', name:'Focused Start',    desc:'Reached a best score of 70+',       earned: bs >= 70 },
+        { icon:'🌟', name:'Top Form',         desc:'Reached a best score of 80+',       earned: bs >= 80 },
+        { icon:'🎯', name:'High Scorer',      desc:'Scored 90+ at least once',          earned: parseInt(m.count_90_plus || 0) >= 1 },
+        { icon:'🏹', name:'Sharp Shooter',    desc:'Scored 90+ five times',             earned: parseInt(m.count_90_plus || 0) >= 5 },
+        { icon:'📈', name:'Above All',        desc:'Scored 90+ ten times',              earned: parseInt(m.count_90_plus || 0) >= 10 },
+        { icon:'💎', name:'Excellence',       desc:'Scored 95+ at least once',          earned: parseInt(m.count_95_plus || 0) >= 1 },
+        { icon:'🧠', name:'Elite Mind',       desc:'Scored 95+ three times',            earned: parseInt(m.count_95_plus || 0) >= 3 },
+        { icon:'🏆', name:'Perfect Score',    desc:'Scored 100 points',                 earned: parseInt(m.count_perfect || 0) >= 1 },
+        { icon:'🥇', name:'Perfect Trio',     desc:'Scored 100 points three times',     earned: parseInt(m.count_perfect || 0) >= 3 },
+        { icon:'🔷', name:'Precision Peak',   desc:'Reached a best score of 100',       earned: bs >= 100 },
+        { icon:'🧭', name:'Explorer',         desc:'Tried multiple challenge tracks',    earned: la >= 2 },
+        { icon:'🗺️', name:'Pathfinder',      desc:'Tried three challenge tracks',       earned: la >= 3 },
+        { icon:'🚩', name:'All-Rounder',      desc:'Covered every challenge track',     earned: la >= 4 },
+        { icon:'🥉', name:'Score 250+',       desc:'Total score exceeded 250',          earned: ts >= 250 },
+        { icon:'💰', name:'Score 500+',       desc:'Total score exceeded 500',          earned: ts >= 500 },
+        { icon:'🥈', name:'Score 1000+',      desc:'Total score exceeded 1000',         earned: ts >= 1000 },
+      ];
+      return [...all.filter(i => i.earned), ...all.filter(i => !i.earned)];
+    }
+
+    function getStudentSuggestions(profile, breakdown, recentSubs = []) {
+      const suggestions = [];
+      const avgScore    = parseFloat(profile?.avg_score || 0);
+      const schoolAvg   = parseFloat(profile?.zone_avg_score || 0);
+      const avgAttempts = parseFloat(breakdown?.avg_attempts || 1);
+      const avgTime     = parseFloat(breakdown?.avg_time_min || 0);
+      const timeLoss    = parseFloat(breakdown?.total_time_loss || 0);
+      const wrongLoss   = parseFloat(breakdown?.total_wrong_loss || 0);
+      const perfect     = recentSubs.filter(r => parseInt(r.score || 0) === 100).length;
+
+      if (avgScore >= 85) {
+        suggestions.push({ label: 'Performance', text: 'Strong scoring discipline is visible. The next milestone is sustaining this standard across every contest attempt.' });
+      } else if (avgScore >= 65) {
+        suggestions.push({ label: 'Performance', text: 'The performance curve is promising. Better consistency in approach and revision can lift the average meaningfully.' });
+      } else {
+        suggestions.push({ label: 'Foundation', text: 'Core problem-solving habits need reinforcement. Focus on step-by-step reasoning before pushing for speed.' });
+      }
+
+      if (avgScore > 0 && avgScore < schoolAvg) {
+        suggestions.push({ label: 'Benchmark', text: `The student is currently ${(schoolAvg - avgScore).toFixed(1)} points below the school average, so short targeted practice cycles would help close the gap.` });
+      }
+
+      if (wrongLoss > timeLoss && avgAttempts >= 1.5) {
+        suggestions.push({ label: 'Logical Thinking', text: 'Accuracy loss is the main concern. Strengthen dry-run thinking, output checking, and first-attempt planning.' });
+      } else if (timeLoss > wrongLoss && avgTime >= 1.5) {
+        suggestions.push({ label: 'Speed', text: 'Time efficiency is the larger opportunity. Timed drills and template familiarity should improve execution pace.' });
+      } else {
+        suggestions.push({ label: 'Execution', text: 'Accuracy and pace are fairly balanced. A small gain in both areas can produce a strong overall jump.' });
+      }
+
+      if (perfect >= 3) {
+        suggestions.push({ label: 'Excellence', text: 'Repeated perfect scores indicate high potential. The focus now should be maintaining excellence under every attempt.' });
+      }
+      suggestions.push({ label: 'Data Note', text: 'Advice is based on score, attempts, time usage, and point deductions because hint data is not available in the current dataset.' });
+      return suggestions;
+    }
+
+    function formatRank(rank, total) {
+      const rankText = rank ? `#${rank}` : '#—';
+      return total ? `${rankText} / ${total}` : rankText;
+    }
+
+    /* ─── PDF helpers ─── */
+
+    function wrapText(doc, text, x, y, maxWidth, lineHeight, color = [44, 62, 80]) {
+      doc.setTextColor(...color);
+      const lines = doc.splitTextToSize(text, maxWidth);
+      doc.text(lines, x, y);
+      return y + (lines.length * lineHeight);
+    }
+
+    function addContainedImage(doc, imageData, x, y, w, h, pad = 0) {
+      const props = doc.getImageProperties(imageData);
+      const boxW = Math.max(1, w - pad * 2);
+      const boxH = Math.max(1, h - pad * 2);
+      const ratio = Math.min(boxW / props.width, boxH / props.height);
+      const drawW = props.width * ratio;
+      const drawH = props.height * ratio;
+      doc.addImage(imageData, props.fileType || 'PNG',
+        x + (w - drawW) / 2, y + (h - drawH) / 2, drawW, drawH);
+    }
+
+    async function loadImageData(url, options = {}) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxW = options.maxWidth || 420;
+          const maxH = options.maxHeight || 220;
+          const ratio = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight, 1);
+          canvas.width  = Math.max(1, Math.round(img.naturalWidth * ratio));
+          canvas.height = Math.max(1, Math.round(img.naturalHeight * ratio));
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.72));
+        };
+        img.onerror = reject;
+        img.src = url;
+      });
+    }
+
+    function drawLogoTile(doc, imageData, x, y, w, h, fallbackText = '') {
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(200, 215, 228);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(x, y, w, h, 3.5, 3.5, 'FD');
+      if (imageData) {
+        addContainedImage(doc, imageData, x + 2, y + 2, w - 4, h - 4, 1);
+        return;
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(80, 110, 138);
+      doc.text(fallbackText, x + w / 2, y + h / 2 + 1.5, { align: 'center' });
+    }
+
+    function drawDetailField(doc, x, y, w, label, value) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.8);
+      doc.setTextColor(110, 135, 158);
+      doc.text(label.toUpperCase(), x, y);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(27, 46, 69);
+      doc.text(String(value || '—'), x, y + 7.5);
+      doc.setDrawColor(196, 214, 228);
+      doc.setLineWidth(0.2);
+      doc.line(x, y + 10.5, x + w, y + 10.5);
+    }
+
+    /* Page background with subtle grid pattern */
+    function drawPageBg(doc) {
+      // Base fill
+      doc.setFillColor(247, 250, 253);
+      doc.rect(0, 0, 210, 297, 'F');
+      // Subtle page border
+      doc.setDrawColor(196, 214, 228);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(7, 7, 196, 283, 6, 6, 'S');
+      // Top accent line
+      doc.setFillColor(58, 85, 114);
+      doc.rect(7, 7, 196, 1.8, 'F');
+    }
+
+    /* Compact header strip for inner pages */
+    function drawInnerPageHeader(doc, title, subtitle) {
+      drawPageBg(doc);
+      // Header gradient bar
+      doc.setFillColor(27, 46, 69);
+      doc.roundedRect(7, 7, 196, 30, 6, 6, 'F');
+      doc.setFillColor(27, 46, 69);
+      doc.rect(7, 20, 196, 17, 'F'); // flatten bottom corners
+      // Subtle accent on header
+      doc.setFillColor(90, 126, 160);
+      doc.rect(7, 7, 4, 30, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(255, 255, 255);
+      doc.text(title, 17, 19);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(170, 195, 215);
+      doc.text(subtitle, 17, 28);
+      // Right: page branding
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(130, 165, 195);
+      doc.text('CODEVYUH 2026', 203, 13, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.text('Powered by Tarcin', 203, 21, { align: 'right' });
+    }
+
+    /* Section card */
+    function drawSectionCard(doc, x, y, w, h, title, accentRgb = [58, 85, 114]) {
+      // Card shadow effect
+      doc.setFillColor(220, 230, 240);
+      doc.roundedRect(x + 0.8, y + 0.8, w, h, 5, 5, 'F');
+      // Card body
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(210, 225, 238);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(x, y, w, h, 5, 5, 'FD');
+      // Section header band
+      doc.setFillColor(...accentRgb);
+      doc.roundedRect(x, y, w, 10.5, 5, 5, 'F');
+      doc.rect(x, y + 5, w, 5.5, 'F');
+      // Left accent pip
+      doc.setFillColor(255, 255, 255);
+      doc.rect(x, y, 3, 10.5, 'F'); // clip rounded corner on left
+      doc.setFillColor(...accentRgb);
+      doc.rect(x, y, 3, 10.5, 'F');
+      doc.setFillColor(200, 148, 58); // gold accent pip
+      doc.rect(x, y, 3, 10.5, 'F');
+      // Title text
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(255, 255, 255);
+      doc.text(title, x + 8, y + 7);
+    }
+
+    /* Metric card */
+    function drawMetricCard(doc, x, y, w, h, label, value, accentRgb, sublabel = '') {
+      // Shadow
+      doc.setFillColor(215, 228, 240);
+      doc.roundedRect(x + 0.5, y + 0.5, w, h, 4, 4, 'F');
+      // Body
+      doc.setFillColor(252, 254, 255);
+      doc.setDrawColor(210, 226, 238);
+      doc.setLineWidth(0.25);
+      doc.roundedRect(x, y, w, h, 4, 4, 'FD');
+      // Top color strip
+      doc.setFillColor(...accentRgb);
+      doc.roundedRect(x, y, w, 3, 4, 4, 'F');
+      doc.rect(x, y + 1.5, w, 1.5, 'F');
+      // Label
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(100, 128, 153);
+      doc.text(label, x + 5, y + 10.5);
+      // Value
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(15.5);
+      doc.setTextColor(27, 46, 69);
+      doc.text(String(value), x + 5, y + 21);
+      // Sub-label
+      if (sublabel) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(120, 148, 170);
+        doc.text(sublabel, x + 5, y + 26.5);
+      }
+    }
+
+    /* Milestone badge */
+    function drawMilestoneBadge(doc, x, y, w, h, item) {
+      if (item.earned) {
+        doc.setFillColor(236, 247, 241);
+        doc.setDrawColor(140, 195, 168);
+      } else {
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(210, 222, 232);
+      }
+      doc.setLineWidth(0.2);
+      doc.roundedRect(x, y, w, h, 3.5, 3.5, 'FD');
+      // Status pip
+      if (item.earned) {
+        doc.setFillColor(42, 122, 88);
+      } else {
+        doc.setFillColor(170, 185, 198);
+      }
+      doc.roundedRect(x + 3, y + 3, w - 6, 4.5, 1.5, 1.5, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(6.2);
+      doc.setTextColor(255, 255, 255);
+      doc.text(item.earned ? 'ACHIEVED' : 'LOCKED', x + w / 2, y + 5.8, { align: 'center' });
+      // Name
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(item.earned ? 30 : 100, item.earned ? 60 : 120, item.earned ? 50 : 140);
+      doc.text(item.name, x + 4, y + 13.5);
+      // Desc
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.2);
+      doc.setTextColor(100, 120, 140);
+      const lines = doc.splitTextToSize(item.desc, w - 8);
+      doc.text(lines.slice(0, 2), x + 4, y + 19);
+    }
+
+    /* Page footer line */
+    function drawPageFooter(doc, text) {
+      doc.setDrawColor(196, 214, 228);
+      doc.setLineWidth(0.2);
+      doc.line(14, 284, 196, 284);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(140, 163, 182);
+      doc.text(text, 105, 289, { align: 'center' });
+    }
+
+    /* ─── Main PDF generator ─── */
+    async function generateStudentReportPDF() {
+      if (!state.profile) return;
+
+      setStatus('Generating PDF — please wait…');
+      setProgress(10);
+      downloadBtn.disabled = true;
+
+      const profile      = state.profile;
+      const breakdown    = state.breakdown || {};
+      const milestones   = state.milestones || {};
+      const recentSubs   = state.recentSubs || [];
+      const milestoneCards = state.milestoneCards || [];
+
+      const { className, section } = splitGrade(profile.grade);
+      const totalLost   = (parseFloat(breakdown.total_wrong_loss || 0) + parseFloat(breakdown.total_time_loss || 0)).toFixed(1);
+      const suggestions = getStudentSuggestions(profile, breakdown, recentSubs);
+      const perfectScoreCount = parseInt(milestones.count_perfect || 0);
+      const avgScore    = parseFloat(profile.avg_score || 0).toFixed(1);
+      const avgAttempts = parseFloat(breakdown.avg_attempts || 1).toFixed(2);
+      const avgTime     = parseFloat(breakdown.avg_time_min || 0).toFixed(1);
+      const schoolAvg   = parseFloat(profile.zone_avg_score || 0).toFixed(1);
+      const wrongLoss   = parseFloat(breakdown.total_wrong_loss || 0).toFixed(1);
+      const timeLoss    = parseFloat(breakdown.total_time_loss || 0).toFixed(1);
+      const schoolRank  = formatRank(profile.rank_in_zone, profile.total_in_zone);
+      const overallRank = formatRank(profile.overall_rank, profile.total_students_overall);
+
+      const observationLines = [
+        `${profile.student_name || 'This student'} has built a total score of ${parseInt(profile.total_score || 0).toLocaleString()} across ${parseInt(profile.total_submissions || 0)} submissions, showing an average score of ${avgScore} points.`,
+        `The current school standing is ${schoolRank}, with an overall school rank of ${overallRank}. The student is benchmarked against a school average of ${schoolAvg} points.`,
+        wrongLoss >= timeLoss
+          ? `Most deduction impact is coming from accuracy-related loss (${wrongLoss} pts), which suggests more careful solution validation before submission.`
+          : `Most deduction impact is coming from time-related loss (${timeLoss} pts), which indicates the student will benefit from faster execution and timed practice.`,
+      ];
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+
+      setProgress(20);
+
+      // Load logos with graceful fallback
+      const logoResults = await Promise.allSettled([
+        loadImageData('/techsavvy_logo.png', { maxWidth: 280, maxHeight: 120 }),
+        loadImageData('/vadiva.png',          { maxWidth: 280, maxHeight: 120 }),
+        loadImageData('/tarcin-logo.png',     { maxWidth: 240, maxHeight: 110 }),
+        loadImageData('/KTA_logo.png',        { maxWidth: 240, maxHeight: 110 }),
+      ]);
+      const [techLogo, schoolLogo, tarcinLogo, ktaLogo] =
+        logoResults.map(r => r.status === 'fulfilled' ? r.value : null);
+
+      setProgress(40);
+
+      /* ══════════════════════════════════════
+         PAGE 1 — STUDENT IDENTITY COVER
+      ══════════════════════════════════════ */
+      drawPageBg(doc);
+
+      // ── Hero header bar ──
+      doc.setFillColor(27, 46, 69);
+      doc.roundedRect(7, 7, 196, 44, 6, 6, 'F');
+      doc.rect(7, 28, 196, 23, 'F'); // flatten bottom corners
+      // Gold accent left bar
+      doc.setFillColor(200, 148, 58);
+      doc.rect(7, 7, 4, 44, 'F');
+      // Header text
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.setTextColor(255, 255, 255);
+      doc.text('STUDENT PERFORMANCE REPORT', 17, 23);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(170, 195, 215);
+      doc.text('PYTHON CODING CONTEST @ 2026  ·  CODEVYUH', 17, 33);
+      // Right logos in header
+      drawLogoTile(doc, techLogo,   154, 11, 22, 18, 'TECH');
+      drawLogoTile(doc, schoolLogo, 179, 11, 22, 18, 'VADIVA');
+
+      // ── Partner bar ──
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(210, 225, 238);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(7, 60, 196, 28, 4, 4, 'FD');
+      // Left: Tarcin logo
+      drawLogoTile(doc, tarcinLogo, 12, 63, 44, 20, 'TARCIN');
+      // Right: KTA logo — fixed position with enough left margin for text
+      drawLogoTile(doc, ktaLogo, 155, 63, 44, 20, 'KTA');
+      // Centre text block — capped width to 82mm so it never overlaps KTA tile
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(90, 120, 148);
+      doc.text('Technology Partner', 62, 68);
+      doc.text('Academic Partner', 62, 84);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(50, 78, 104);
+      // Wrap the description so it stays within the 82 mm budget (x=62 → x=144)
+      const partnerDesc = doc.splitTextToSize(
+        'A professional performance summary prepared for school leadership and parents.',
+        82
+      );
+      doc.text(partnerDesc, 62, 74);
+
+      // ── Student Details Card ──
+      drawSectionCard(doc, 7, 98, 196, 94, 'Student Details', [27, 46, 69]);
+
+      // 2×3 field grid
+      const fields = [
+        ['Name',              profile.student_name || '—'],
+        ['School Name',       profile.school || '—'],
+        ['Class',             className],
+        ['Section',           section],
+        ['School Wise Rank',  schoolRank],
+        ['Overall School Rank', overallRank],
+      ];
+      fields.forEach((f, i) => {
+        const col = i % 2;
+        const row = Math.floor(i / 2);
+        drawDetailField(doc, 15 + col * 98, 114 + row * 28, 88, f[0], f[1]);
+      });
+
+      // ── Report Overview ──
+      // Expanded content — more lines = taller card (height 76)
+      doc.setFillColor(238, 244, 251);
+      doc.setDrawColor(210, 225, 238);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(7, 202, 196, 76, 4, 4, 'FD');
+      doc.setFillColor(200, 148, 58);
+      doc.rect(7, 202, 4, 76, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(27, 46, 69);
+      doc.text('Report Overview', 17, 215);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      // Line 1 — positioning summary
+      let ovY = wrapText(doc,
+        `${profile.student_name || 'The student'} is currently positioned at ${schoolRank} within the school and ${overallRank} overall across all participating institutions in the CODEVYUH 2026 Python Coding Contest.`,
+        17, 224, 182, 5.2, [58, 85, 114]);
+      ovY += 3;
+      // Line 2 — what this report covers
+      ovY = wrapText(doc,
+        'This report provides a detailed summary of scoring strength, attempt efficiency, time utilisation, point deduction patterns, and personalised improvement recommendations — compiled to support targeted academic coaching.',
+        17, ovY, 182, 5.2, [58, 85, 114]);
+      ovY += 3;
+      // Line 3 — next steps nudge
+      ovY = wrapText(doc,
+        'Parents and teachers are encouraged to review the KPI section alongside the suggestions for focused, high-impact practice cycles ahead of the next contest.',
+        17, ovY, 182, 5.2, [80, 108, 135]);
+      doc.setFont('helvetica', 'italic');
+      doc.setFontSize(8);
+      doc.setTextColor(140, 163, 182);
+
+      drawPageFooter(doc, 'Student Performance Report · CODEVYUH 2026 · Powered by Tarcin · Page 1 of 2');
+
+      /* ══════════════════════════════════════
+         PAGE 2 — KPIs + ANALYSIS
+      ══════════════════════════════════════ */
+      doc.addPage();
+      setProgress(60);
+      drawInnerPageHeader(doc, 'Student KPI and Improvement Advice', 'Performance insights with deduction analysis and recommendations');
+
+      // KPI grid — 3 × 2
+      const kpis = [
+        ['Total Score',      parseInt(profile.total_score || 0).toLocaleString(), [27,  46,  69],  'Cumulative performance'],
+        ['Average Score',    `${avgScore} pts`,                                   [46,  88, 140],  'Scoring consistency'],
+        ['Average Attempts', avgAttempts,                                          [58, 114, 158],  'Attempt efficiency'],
+        ['Average Time',     `${avgTime} min`,                                    [80, 135, 180],  'Execution pace'],
+        ['Perfect Scores',   String(perfectScoreCount),                           [42, 122,  88],  '100-point finishes'],
+        ['School Average',   `${schoolAvg} pts`,                                  [100,140, 170],  'Benchmark score'],
+      ];
+      kpis.forEach((kpi, idx) => {
+        const col = idx % 3;
+        const row = Math.floor(idx / 3);
+        drawMetricCard(doc, 13 + col * 63, 43 + row * 33, 59, 29, kpi[0], kpi[1], kpi[2], kpi[3]);
+      });
+
+      // Observation Summary
+      drawSectionCard(doc, 7, 112, 196, 50, 'Observation Summary', [46, 88, 140]);
+      let obsY = 129;
+      observationLines.forEach(line => {
+        obsY = wrapText(doc, line, 16, obsY, 180, 5, [58, 85, 114]) + 2;
+      });
+
+      // Points Lost — fixed equal-width cards (3 × 58mm) with safe gaps
+      drawSectionCard(doc, 7, 172, 196, 44, 'Points Lost Highlights', [90, 50, 100]);
+      // Card width: (196 - 14 margin*2 - 2 gaps*4) / 3 = 58mm each
+      drawMetricCard(doc, 14,  186, 58, 25, 'Wrong Attempt Loss', `${wrongLoss} pts`, [160, 80, 100],  'Accuracy focus');
+      drawMetricCard(doc, 76,  186, 58, 25, 'Time Loss',          `${timeLoss} pts`,  [120, 100, 160], 'Speed focus');
+      drawMetricCard(doc, 138, 186, 58, 25, 'Total Points Lost',  `${totalLost} pts`, [80, 60, 130],   'Combined deductions');
+
+      // Suggestions
+      drawSectionCard(doc, 7, 225, 196, 56, 'Suggestions for This Student', [27, 46, 69]);
+      let sugY = 242;
+      suggestions.forEach((item, idx) => {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(27, 46, 69);
+        doc.text(`${idx + 1}. ${item.label}:`, 16, sugY);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.8);
+        sugY = wrapText(doc, item.text, 44, sugY, 152, 4.7, [72, 100, 126]) + 1.5;
+        if (sugY > 275) return; // guard overflow
+      });
+
+      drawPageFooter(doc, 'Student Performance Report · CODEVYUH 2026 · Powered by Tarcin · Page 2 of 2');
+
+      setProgress(95);
+
+      const fileName = `${String(profile.student_name || 'student')
+        .replace(/[^a-z0-9]+/gi, '_').toLowerCase()}_performance_report_2026.pdf`;
+      doc.save(fileName);
+
+      setProgress(100);
+      setStatus(`✓ Report generated for ${profile.student_name || 'the student'}. Download should start automatically.`);
+      downloadBtn.disabled = false;
+      downloadBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20,6 9,17 4,12"/>
+        </svg>
+        Download Again
+      `;
+    }
+
+    /* ─── Init ─── */
+    async function init() {
+      if (!studentId) {
+        setStatus('No student selected. Please return to the parent dashboard and choose a student first.');
+        setProgress(0);
+        return;
+      }
+      try {
+        setStatus('Loading report data…');
+        setProgress(15);
+        const [profile, breakdown, recentSubs, milestones] = await Promise.all([
+          apiFetch('profile'),
+          apiFetch('score-breakdown'),
+          apiFetch('recent-submissions'),
+          apiFetch('milestones'),
+        ]);
+        state.profile      = profile;
+        state.breakdown    = breakdown;
+        state.recentSubs   = recentSubs;
+        state.milestones   = milestones;
+        state.milestoneCards = getMilestoneCards(milestones);
+
+        // Populate info chips
+        document.getElementById('chip-name-val').textContent  = profile.student_name || '—';
+        document.getElementById('chip-rank-val').textContent  = formatRank(profile.rank_in_zone, profile.total_in_zone);
+        document.getElementById('chip-score-val').textContent = `${parseFloat(profile.avg_score || 0).toFixed(1)} pts`;
+        infoRow.style.display = 'flex';
+
+        setProgress(100);
+        downloadBtn.disabled = false;
+        setStatus(`Ready to generate report for ${profile.student_name || 'the selected student'}.`);
+        if (autoDownload) await generateStudentReportPDF();
+      } catch (error) {
+        console.error(error);
+        setProgress(0);
+        setStatus('Unable to prepare the report right now. Please go back and try again.');
+      }
+    }
+
+    downloadBtn.addEventListener('click', generateStudentReportPDF);
+    closeBtn.addEventListener('click', () => window.close());
+    init();
+  </script>
+</body>
+</html>

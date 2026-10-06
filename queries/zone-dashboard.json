@@ -1,0 +1,30 @@
+{
+  "_schema_notes": {
+    "Submission": "id, userId, level(int), score(int), data(json: timeTaken secs, attempts), createdAt",
+    "User": "id, username, name, grade, role, schoolId",
+    "School": "id, name — the 'zone'",
+    "scoring": "base 100, wrong: (attempts-1)*-5, time: (timeTaken/60)*-3, min 50"
+  },
+
+  "zones": "SELECT id, name AS zone FROM \"School\" WHERE name NOT IN ('Tarcin','ABC Matriculation School','XYZ Higher Secondary School') ORDER BY name ASC",
+
+  "zoneSummary": "SELECT sc.name AS zone, COUNT(DISTINCT u.id)::int AS total_students, COUNT(s.id)::int AS total_submissions, COALESCE(SUM(s.score), 0)::bigint AS total_score, COUNT(DISTINCT CASE WHEN s.id IS NOT NULL THEN u.id END)::int AS active_students FROM \"School\" sc LEFT JOIN \"User\" u ON u.\"schoolId\" = sc.id LEFT JOIN \"Submission\" s ON s.\"userId\" = u.id WHERE sc.name = $1::text AND u.role = 'STUDENT' GROUP BY sc.id, sc.name",
+
+  "topStudents": "SELECT COALESCE(u.name, u.username) AS student_name, u.grade, COUNT(s.id)::int AS submissions, COALESCE(SUM(s.score), 0)::int AS total_score, MAX(s.score)::int AS best_score FROM \"User\" u JOIN \"School\" sc ON u.\"schoolId\" = sc.id LEFT JOIN \"Submission\" s ON s.\"userId\" = u.id WHERE sc.name = $1::text AND u.role = 'STUDENT' GROUP BY u.id, u.name, u.username, u.grade ORDER BY total_score DESC NULLS LAST LIMIT 15",
+
+  "levelBreakdown": "SELECT s.level, COUNT(*)::int AS submissions, COALESCE(SUM(s.score), 0)::bigint AS total_score, ROUND(AVG(COALESCE((s.data::jsonb->>'timeTaken')::numeric, 0) / 60.0)::numeric, 2) AS avg_time_min, ROUND(AVG(GREATEST(0, COALESCE((s.data::jsonb->>'attempts')::numeric, 1) - 1) * -5.0)::numeric, 2) AS avg_wrong_deduction, ROUND(AVG((COALESCE((s.data::jsonb->>'timeTaken')::numeric, 0) / 60.0) * -3.0)::numeric, 2) AS avg_time_deduction FROM \"Submission\" s JOIN \"User\" u ON s.\"userId\" = u.id JOIN \"School\" sc ON u.\"schoolId\" = sc.id WHERE sc.name = $1::text GROUP BY s.level ORDER BY s.level ASC",
+
+  "scoreDistribution": "WITH student_totals AS (SELECT u.id, COALESCE(SUM(s.score), 0) AS total FROM \"User\" u JOIN \"School\" sc ON u.\"schoolId\" = sc.id LEFT JOIN \"Submission\" s ON s.\"userId\" = u.id WHERE sc.name = $1::text AND u.role = 'STUDENT' GROUP BY u.id) SELECT CASE WHEN total = 0 THEN 'No submissions' WHEN total < 100 THEN '1 – 100' WHEN total < 300 THEN '100 – 300' WHEN total < 500 THEN '300 – 500' WHEN total < 1000 THEN '500 – 1K' WHEN total < 2000 THEN '1K – 2K' WHEN total < 5000 THEN '2K – 5K' ELSE '5K+' END AS score_range, COUNT(*)::int AS student_count FROM student_totals GROUP BY score_range ORDER BY MIN(total) ASC",
+
+  "scoreMilestones": "SELECT COALESCE(NULLIF(u.grade,''),'Unknown') AS grade, COUNT(s.id)::int AS submissions, COUNT(*) FILTER (WHERE s.score >= 90)::int AS score_90_plus, COUNT(*) FILTER (WHERE s.score = 100)::int AS perfect_scores FROM \"User\" u JOIN \"School\" sc ON u.\"schoolId\" = sc.id LEFT JOIN \"Submission\" s ON s.\"userId\" = u.id WHERE sc.name = $1::text AND u.role = 'STUDENT' GROUP BY u.grade ORDER BY submissions DESC NULLS LAST, grade ASC",
+
+  "scoreBands": "WITH student_totals AS (SELECT COALESCE(NULLIF(u.grade,''),'Unknown') AS grade, u.id, COALESCE(SUM(s.score),0) AS total_score FROM \"User\" u JOIN \"School\" sc ON u.\"schoolId\" = sc.id LEFT JOIN \"Submission\" s ON s.\"userId\" = u.id WHERE sc.name = $1::text AND u.role = 'STUDENT' GROUP BY u.id, u.grade) SELECT grade, COUNT(*) FILTER (WHERE total_score = 0)::int AS zero_band, COUNT(*) FILTER (WHERE total_score > 0 AND total_score < 300)::int AS emerging_band, COUNT(*) FILTER (WHERE total_score >= 300 AND total_score < 1000)::int AS progressing_band, COUNT(*) FILTER (WHERE total_score >= 1000)::int AS advanced_band FROM student_totals GROUP BY grade ORDER BY grade ASC",
+
+  "deductionOverview": "SELECT COALESCE(NULLIF(u.grade,''),'Unknown') AS grade, ROUND(SUM(GREATEST(0, COALESCE((s.data::jsonb->>'attempts')::numeric,1)-1) * 5.0)::numeric,1) AS wrong_loss, ROUND(SUM((COALESCE((s.data::jsonb->>'timeTaken')::numeric,0)/60.0) * 3.0)::numeric,1) AS pace_loss, COUNT(s.id)::int AS submissions FROM \"User\" u JOIN \"School\" sc ON u.\"schoolId\" = sc.id LEFT JOIN \"Submission\" s ON s.\"userId\" = u.id WHERE sc.name = $1::text AND u.role = 'STUDENT' GROUP BY u.grade ORDER BY (COALESCE(SUM(GREATEST(0, COALESCE((s.data::jsonb->>'attempts')::numeric,1)-1) * 5.0),0) + COALESCE(SUM((COALESCE((s.data::jsonb->>'timeTaken')::numeric,0)/60.0) * 3.0),0)) DESC, grade ASC",
+
+  "gradewiseStats": "SELECT COALESCE(NULLIF(u.grade, ''), 'Unknown') AS grade, COUNT(DISTINCT u.id)::int AS students, COUNT(s.id)::int AS submissions, COALESCE(SUM(s.score), 0)::bigint AS total_score FROM \"User\" u JOIN \"School\" sc ON u.\"schoolId\" = sc.id LEFT JOIN \"Submission\" s ON s.\"userId\" = u.id WHERE sc.name = $1::text AND u.role = 'STUDENT' GROUP BY u.grade ORDER BY total_score DESC NULLS LAST LIMIT 12",
+
+  "zoneRank": "SELECT sc.name AS zone, COUNT(DISTINCT u.id)::int AS total_students, COUNT(s.id)::int AS total_submissions, COALESCE(SUM(s.score),0)::bigint AS total_score, RANK() OVER (ORDER BY COALESCE(SUM(s.score),0) DESC)::int AS rank FROM \"School\" sc LEFT JOIN \"User\" u ON u.\"schoolId\" = sc.id AND u.role = 'STUDENT' LEFT JOIN \"Submission\" s ON s.\"userId\" = u.id WHERE sc.name NOT IN ('Tarcin','ABC Matriculation School','XYZ Higher Secondary School') GROUP BY sc.id, sc.name ORDER BY total_score DESC",
+
+  "zoneRankSummary": "WITH ranked_zones AS (SELECT sc.name AS zone, RANK() OVER (ORDER BY COALESCE(SUM(s.score),0) DESC)::int AS rank FROM \"School\" sc LEFT JOIN \"User\" u ON u.\"schoolId\" = sc.id AND u.role = 'STUDENT' LEFT JOIN \"Submission\" s ON s.\"userId\" = u.id WHERE sc.name NOT IN ('Tarcin','ABC Matriculation School','XYZ Higher Secondary School') GROUP BY sc.id, sc.name) SELECT rank, (SELECT COUNT(*)::int FROM ranked_zones) AS total_zones FROM ranked_zones WHERE zone = $1::text"
+}

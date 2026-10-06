@@ -1,0 +1,201 @@
+/* ═══════════════════════════════════════════════════════════════
+   filters.css — Filter bar and dropdown styles
+═══════════════════════════════════════════════════════════════ */
+
+/* ── Filter Bar Container ───────────────────────────────────── */
+.filterbar {
+  position: fixed;
+  top: var(--topbar-height);
+  left: 0;
+  right: 0;
+  z-index: 990;
+  min-height: var(--filterbar-height);
+  background: var(--bar-strong-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-lg);
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.filterbar-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.filterbar-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.filters-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* ── Filter Item (label + select) ───────────────────────────── */
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.filter-item-label {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ── Custom Select ──────────────────────────────────────────── */
+.filter-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  padding: 5px 28px 5px 10px;
+  min-width: 160px;
+  max-width: 220px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.2s ease;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%238fa3bf' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.filter-select:hover,
+.filter-select:focus {
+  border-color: var(--border-active);
+  background-color: var(--bg-elevated);
+  box-shadow: 0 0 0 2px rgba(30, 111, 220, 0.15);
+}
+
+.filter-select option {
+  background: var(--bg-panel);
+  color: var(--text-primary);
+}
+
+/* ── Active Filter Badge ────────────────────────────────────── */
+.filter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: rgba(30, 111, 220, 0.15);
+  color: var(--brand-accent);
+  border: 1px solid rgba(30, 111, 220, 0.3);
+}
+
+/* ── Clear Filters Button ───────────────────────────────────── */
+.btn-clear-filters {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-clear-filters:hover {
+  border-color: var(--color-down);
+  color: var(--color-down);
+  background: var(--color-down-bg);
+}
+
+.btn-clear-filters svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* ── Stats summary strip ────────────────────────────────────── */
+.filterbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-shrink: 0;
+}
+
+.filter-status-text {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.filter-status-text span {
+  color: var(--brand-accent);
+  font-weight: 600;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 1440px) {
+  :root {
+    --filterbar-height: 86px;
+  }
+  .filterbar {
+    padding: 8px var(--space-md);
+    align-items: flex-start;
+  }
+  .filters-group {
+    flex: 1 1 100%;
+  }
+  .filterbar-right {
+    margin-left: 0;
+  }
+  .filter-item {
+    min-width: 0;
+  }
+}
+@media (max-width: 768px) {
+  :root {
+    --filterbar-height: 126px;
+  }
+  .filterbar-label,
+  .filterbar-sep {
+    display: none;
+  }
+  .filters-group { width: 100%; }
+  .filter-item {
+    flex: 1 1 calc(50% - var(--space-sm));
+    min-width: 0;
+  }
+  .filter-select {
+    min-width: 0;
+    max-width: none;
+    width: 100%;
+  }
+  .btn-clear-filters {
+    justify-content: center;
+  }
+  .filterbar-right { display: none; }
+}

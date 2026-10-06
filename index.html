@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hackathon Analytics Dashboard</title>
+<link rel="icon" href="data:,">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #111827;
+    --bg3: #1a2235;
+    --card: #141c2e;
+    --border: rgba(99,179,237,0.12);
+    --border2: rgba(99,179,237,0.22);
+    --text: #e2e8f0;
+    --muted: #8899aa;
+    --accent: #3b82f6;
+    --accent2: #06b6d4;
+    --accent3: #8b5cf6;
+    --success: #10b981;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'Space Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* NAV */
+  .nav { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 2rem; display: flex; align-items: center; gap: 0; height: 56px; position: sticky; top: 0; z-index: 100; }
+  .nav-brand { font-family: var(--mono); font-size: 14px; color: var(--accent2); letter-spacing: 0.05em; margin-right: 2.5rem; }
+  .nav-tab { padding: 0 1.25rem; height: 56px; display: flex; align-items: center; font-size: 13px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
+  .nav-tab:hover { color: var(--text); }
+  .nav-tab.active { color: var(--accent2); border-bottom-color: var(--accent2); }
+  .nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .status-text { font-size: 12px; color: var(--muted); }
+
+  /* PAGES */
+  .page { display: none; padding: 2rem; }
+  .page.active { display: block; }
+
+  /* SECTION HEADER */
+  .section-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+  .section-title { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; color: var(--accent); text-transform: uppercase; margin-bottom: 4px; }
+  .section-heading { font-size: 22px; font-weight: 600; color: var(--text); }
+
+  /* FILTERS */
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; }
+  select, input[type=text] {
+    background: var(--bg3); border: 1px solid var(--border2); color: var(--text);
+    padding: 7px 14px; border-radius: 8px; font-size: 13px; font-family: var(--font);
+    outline: none; cursor: pointer; transition: border 0.2s;
+  }
+  select:hover, input[type=text]:hover { border-color: var(--accent); }
+  input[type=text] { width: 220px; }
+  input[type=text]::placeholder { color: var(--muted); }
+
+  /* METRIC CARDS */
+  .metrics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 1.5rem; }
+  .metric-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.2rem 1.4rem; position: relative; overflow: hidden; }
+  .metric-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: var(--accent-c, var(--accent)); border-radius: 3px 0 0 3px; }
+  .metric-label { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+  .metric-value { font-family: var(--mono); font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
+  .metric-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .metric-card.c-blue { --accent-c: #3b82f6; }
+  .metric-card.c-teal { --accent-c: #06b6d4; }
+  .metric-card.c-violet { --accent-c: #8b5cf6; }
+  .metric-card.c-green { --accent-c: #10b981; }
+  .metric-card.c-amber { --accent-c: #f59e0b; }
+  .metric-card.c-red { --accent-c: #ef4444; }
+
+  /* CHARTS GRID */
+  .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; margin-bottom: 1.5rem; }
+  .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.4rem; }
+  .chart-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 1rem; }
+  .chart-sub { font-size: 12px; color: var(--muted); margin-top: -8px; margin-bottom: 1rem; }
+  .chart-wrap { position: relative; }
+
+  /* TABLES */
+  .table-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem; }
+  .table-header { padding: 1rem 1.4rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .table-title { font-size: 13px; font-weight: 500; }
+  table { width: 100%; border-collapse: collapse; }
+  th { padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); }
+  td { padding: 11px 16px; font-size: 13px; border-bottom: 1px solid rgba(99,179,237,0.05); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(99,179,237,0.04); }
+
+  /* BADGES */
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+  .badge-green { background: rgba(16,185,129,0.12); color: #10b981; }
+  .badge-amber { background: rgba(245,158,11,0.12); color: #f59e0b; }
+  .badge-red { background: rgba(239,68,68,0.12); color: #ef4444; }
+  .badge-blue { background: rgba(59,130,246,0.12); color: #60a5fa; }
+
+  /* ALERT PANEL */
+  .alerts-panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.4rem; margin-bottom: 1.5rem; }
+  .alert-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .alert-item:last-child { border-bottom: none; }
+  .alert-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .alert-icon.warn { background: rgba(245,158,11,0.12); color: #f59e0b; }
+  .alert-icon.danger { background: rgba(239,68,68,0.12); color: #ef4444; }
+  .alert-icon.info { background: rgba(59,130,246,0.12); color: #60a5fa; }
+  .alert-body .alert-title { font-size: 13px; font-weight: 500; margin-bottom: 2px; }
+  .alert-body .alert-desc { font-size: 12px; color: var(--muted); }
+
+  /* RANK BAR */
+  .rank-bar-wrap { display: flex; align-items: center; gap: 10px; }
+  .rank-bar-bg { flex: 1; height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+  .rank-bar-fill { height: 100%; border-radius: 3px; transition: width 0.8s ease; }
+
+  /* STUDENT CARD */
+  .student-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 1.4rem; }
+  .student-header { display: flex; align-items: center; gap: 14px; margin-bottom: 1.2rem; }
+  .student-avatar { width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent3)); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 18px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .student-name { font-size: 18px; font-weight: 600; }
+  .student-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .stat-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 1.2rem; }
+  .stat-pill { background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; flex: 1; min-width: 120px; }
+  .stat-pill-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+  .stat-pill-val { font-family: var(--mono); font-size: 20px; font-weight: 700; }
+
+  /* COMPARISON */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .compare-item { background: var(--bg3); border-radius: 10px; padding: 14px; }
+  .compare-label { font-size: 11px; color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .compare-bars { display: flex; flex-direction: column; gap: 8px; }
+  .compare-bar-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .compare-bar-label { width: 100px; color: var(--muted); flex-shrink: 0; }
+  .compare-bar-track { flex: 1; height: 8px; background: var(--bg2); border-radius: 4px; overflow: hidden; }
+  .compare-bar-fill { height: 100%; border-radius: 4px; }
+  .compare-bar-val { width: 36px; text-align: right; font-family: var(--mono); font-size: 11px; color: var(--text); }
+
+  /* LOADING */
+  .loading-overlay { display: flex; align-items: center; justify-content: center; padding: 3rem; flex-direction: column; gap: 12px; }
+  .spinner { width: 32px; height: 32px; border: 3px solid var(--border2); border-top-color: var(--accent2); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 13px; color: var(--muted); }
+
+  /* RESPONSIVE */
+  @media (max-width: 700px) {
+    .page { padding: 1rem; }
+    .compare-grid { grid-template-columns: 1fr; }
+    .charts-grid { grid-template-columns: 1fr; }
+  }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+  .thinking-bar { display: flex; gap: 4px; align-items: center; }
+  .thinking-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+  .trend-arrow { font-size: 12px; margin-left: 4px; }
+  .trend-up { color: var(--success); }
+  .trend-down { color: var(--danger); }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-brand">// HACKATHON ANALYTICS</div>
+  <div class="nav-tab active" onclick="switchPage('admin')">Admin Overview</div>
+  <div class="nav-tab" onclick="switchPage('zone')">Zone Dashboard</div>
+  <div class="nav-tab" onclick="switchPage('student')">Student View</div>
+  <div class="nav-right">
+    <div class="status-dot"></div>
+    <span class="status-text" id="connStatus">Connecting...</span>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════ ADMIN PAGE ═══ -->
+<div id="page-admin" class="page active">
+  <div class="section-header">
+    <div>
+      <div class="section-title">School Management</div>
+      <div class="section-heading">Platform Overview</div>
+    </div>
+    <div class="filters">
+      <select id="admin-zone-filter" onchange="loadAdminData()">
+        <option value="">All Zones</option>
+      </select>
+      <select id="admin-event-filter" onchange="loadAdminData()">
+        <option value="">All Events</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="metrics-grid" id="admin-metrics">
+    <div class="loading-overlay" style="grid-column:1/-1"><div class="spinner"></div><div class="loading-text">Loading metrics...</div></div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">Zone-wise Performance</div>
+      <div class="chart-sub">Average score by college/zone</div>
+      <div class="chart-wrap" style="height:260px"><canvas id="zoneBarChart" role="img" aria-label="Bar chart showing zone performance scores">Zone performance data loading.</canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Division Distribution</div>
+      <div class="chart-sub">Teams across Foundation / Ascendant / Apex</div>
+      <div style="display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap" id="divLegend"></div>
+      <div class="chart-wrap" style="height:220px"><canvas id="divPieChart" role="img" aria-label="Pie chart showing division distribution">Division data loading.</canvas></div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">Submission Trend</div>
+      <div class="chart-sub">Submissions over time</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="submissionTrendChart" role="img" aria-label="Line chart showing submission trends">Submission trend data loading.</canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Score Distribution</div>
+      <div class="chart-sub">Spread of final scores</div>
+      <div class="chart-wrap" style="height:220px"><canvas id="scoreDistChart" role="img" aria-label="Bar chart showing score distribution">Score distribution data loading.</canvas></div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="table-card">
+        <div class="table-header"><span class="table-title">Top Performing Zones</span><span class="badge badge-blue">By avg score</span></div>
+        <table><thead><tr><th>#</th><th>Zone / College</th><th>Teams</th><th>Avg Score</th><th>Status</th></tr></thead>
+        <tbody id="topZonesTable"><tr><td colspan="5" style="padding:2rem;text-align:center;color:var(--muted)">Loading...</td></tr></tbody></table>
+      </div>
+    </div>
+    <div>
+      <div class="alerts-panel">
+        <div class="chart-title" style="margin-bottom:1rem">⚠ Alerts & Decisions</div>
+        <div id="alertsList"><div class="loading-overlay" style="padding:1rem"><div class="spinner"></div></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ ZONE PAGE ═══ -->
+<div id="page-zone" class="page">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Zone Level</div>
+      <div class="section-heading">Zone Deep-Dive</div>
+    </div>
+    <div class="filters">
+      <select id="zone-filter" onchange="loadZoneData()">
+        <option value="">Select Zone...</option>
+      </select>
+      <select id="zone-school-filter" onchange="loadZoneData()">
+        <option value="">All Schools</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="metrics-grid" id="zone-metrics">
+    <div class="loading-overlay" style="grid-column:1/-1"><div class="spinner"></div><div class="loading-text">Select a zone to view metrics</div></div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title">School-wise Performance</div>
+      <div class="chart-wrap" style="height:280px"><canvas id="schoolPerfChart" role="img" aria-label="Bar chart of school performance">School performance data loading.</canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Student Activity Trend</div>
+      <div class="chart-wrap" style="height:280px"><canvas id="activityTrendChart" role="img" aria-label="Line chart of student activity">Activity trend data loading.</canvas></div>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-header"><span class="table-title">Teams in Zone</span></div>
+    <table><thead><tr><th>Rank</th><th>Team</th><th>College</th><th>Score</th><th>Division</th><th>Members</th></tr></thead>
+    <tbody id="zoneTeamsTable"><tr><td colspan="6" style="padding:2rem;text-align:center;color:var(--muted)">Select a zone to view teams</td></tr></tbody></table>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ STUDENT PAGE ═══ -->
+<div id="page-student" class="page">
+  <div class="section-header">
+    <div>
+      <div class="section-title">Student Level</div>
+      <div class="section-heading">Individual Performance</div>
+    </div>
+    <div class="filters">
+      <input type="text" id="student-search" placeholder="Search student by name..." oninput="debounceStudentSearch()">
+      <select id="student-zone-filter" onchange="loadStudentList()">
+        <option value="">All Zones</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="two-col" style="margin-bottom:1.5rem">
+    <div class="table-card" style="margin-bottom:0">
+      <div class="table-header"><span class="table-title">Students</span></div>
+      <table><thead><tr><th>Name</th><th>College</th><th>Score</th><th>Rank</th></tr></thead>
+      <tbody id="studentListTable"><tr><td colspan="4" style="padding:2rem;text-align:center;color:var(--muted)">Search or filter to find students</td></tr></tbody></table>
+    </div>
+    <div id="studentDetail">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:3rem;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:14px;height:100%">
+        Select a student to view details
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_PROXY_URL = window.HACKATHON_API_URL || '';
+let chartInstances = {};
+let adminData = null;
+let allZones = [];
+let searchDebounce = null;
+
+// ── NAVIGATION ──────────────────────────────────────────
+function switchPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  event.target.classList.add('active');
+  if (page === 'zone' && allZones.length === 0) loadZoneData();
+  if (page === 'student') loadStudentList();
+}
+
+// ── ANALYTICS DATA SOURCE ─────────────────────────────────
+const DEMO_EVENTS = ['All Events', 'Hackathon', 'Ideathon', 'Workshop'];
+const DEMO_ZONES = [
+  {
+    zone: 'Chennai Institute of Technology',
+    avgScore: 84,
+    teamCount: 18,
+    submissions: 126,
+    trend: 'up',
+    schools: [
+      { school: 'CIT Main Campus', avgScore: 86, studentCount: 34 },
+      { school: 'CIT Innovation Block', avgScore: 82, studentCount: 22 }
+    ]
+  },
+  {
+    zone: 'PSG College of Technology',
+    avgScore: 79,
+    teamCount: 16,
+    submissions: 112,
+    trend: 'up',
+    schools: [
+      { school: 'PSG Coimbatore', avgScore: 80, studentCount: 28 },
+      { school: 'PSG Research Wing', avgScore: 76, studentCount: 18 }
+    ]
+  },
+  {
+    zone: 'SSN College of Engineering',
+    avgScore: 74,
+    teamCount: 15,
+    submissions: 103,
+    trend: 'stable',
+    schools: [
+      { school: 'SSN Main Block', avgScore: 75, studentCount: 25 },
+      { school: 'SSN Startup Cell', avgScore: 72, studentCount: 17 }
+    ]
+  },
+  {
+    zone: 'VIT Chennai',
+    avgScore: 69,
+    teamCount: 14,
+    submissions: 95,
+    trend: 'up',
+    schools: [
+      { school: 'VIT Core Campus', avgScore: 70, studentCount: 24 },
+      { school: 'VIT Incubation Hub', avgScore: 67, studentCount: 15 }
+    ]
+  },
+  {
+    zone: 'SASTRA Deemed University',
+    avgScore: 63,
+    teamCount: 12,
+    submissions: 84,
+    trend: 'down',
+    schools: [
+      { school: 'SASTRA Thanjavur', avgScore: 64, studentCount: 20 },
+      { school: 'SASTRA Tech Park', avgScore: 61, studentCount: 14 }
+    ]
+  },
+  {
+    zone: 'Kumaraguru College of Technology',
+    avgScore: 58,
+    teamCount: 10,
+    submissions: 71,
+    trend: 'stable',
+    schools: [
+      { school: 'KCT Main Block', avgScore: 59, studentCount: 16 },
+      { school: 'KCT Lab School', avgScore: 56, studentCount: 12 }
+    ]
+  }
+];
+
+const DEMO_STUDENTS = [
+  { id: 'STU-101', name: 'Arun K', college: 'Chennai Institute of Technology', email: 'arun@example.com', individualScore: 92, totalSubmissions: 15, teamName: 'Binary Beasts', division: 'APEX', rank: 1 },
+  { id: 'STU-102', name: 'Nivetha S', college: 'PSG College of Technology', email: 'nivetha@example.com', individualScore: 88, totalSubmissions: 13, teamName: 'Code Comets', division: 'APEX', rank: 2 },
+  { id: 'STU-103', name: 'Pradeep R', college: 'SSN College of Engineering', email: 'pradeep@example.com', individualScore: 84, totalSubmissions: 12, teamName: 'Stack Surge', division: 'ASCENDANT', rank: 3 },
+  { id: 'STU-104', name: 'Harini V', college: 'VIT Chennai', email: 'harini@example.com', individualScore: 79, totalSubmissions: 11, teamName: 'Logic Loop', division: 'ASCENDANT', rank: 4 },
+  { id: 'STU-105', name: 'Dinesh M', college: 'SASTRA Deemed University', email: 'dinesh@example.com', individualScore: 73, totalSubmissions: 10, teamName: 'Kernel Knights', division: 'ASCENDANT', rank: 5 },
+  { id: 'STU-106', name: 'Keerthana P', college: 'Kumaraguru College of Technology', email: 'keerthana@example.com', individualScore: 67, totalSubmissions: 9, teamName: 'Pulse Coders', division: 'FOUNDATION', rank: 6 },
+  { id: 'STU-107', name: 'Sanjay T', college: 'Chennai Institute of Technology', email: 'sanjay@example.com', individualScore: 64, totalSubmissions: 8, teamName: 'Dev Dynamos', division: 'FOUNDATION', rank: 7 },
+  { id: 'STU-108', name: 'Lavanya G', college: 'PSG College of Technology', email: 'lavanya@example.com', individualScore: 61, totalSubmissions: 7, teamName: 'Node Ninjas', division: 'FOUNDATION', rank: 8 },
+  { id: 'STU-109', name: 'Mohamed I', college: 'SSN College of Engineering', email: 'mohamed@example.com', individualScore: 58, totalSubmissions: 6, teamName: 'Byte Bridge', division: 'FOUNDATION', rank: 9 },
+  { id: 'STU-110', name: 'Riya A', college: 'VIT Chennai', email: 'riya@example.com', individualScore: 54, totalSubmissions: 5, teamName: 'Hack Harbor', division: 'FOUNDATION', rank: 10 }
+];
+
+function setConnectionStatus(text) {
+  document.getElementById('connStatus').textContent = text;
+}
+
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function getDemoAdminOverview(zoneFilter, eventFilter) {
+  const zones = zoneFilter ? DEMO_ZONES.filter(z => z.zone === zoneFilter) : DEMO_ZONES;
+  const multiplier = eventFilter && eventFilter !== 'All Events' ? 0.82 : 1;
+  const totalTeams = Math.round(zones.reduce((sum, z) => sum + z.teamCount, 0) * multiplier);
+  const totalSubmissions = Math.round(zones.reduce((sum, z) => sum + z.submissions, 0) * multiplier);
+  const totalStudents = Math.round(totalTeams * 3.2);
+  const avgScore = zones.length ? zones.reduce((sum, z) => sum + z.avgScore, 0) / zones.length : 0;
+
+  return {
+    metrics: {
+      totalTeams,
+      totalStudents,
+      totalSubmissions,
+      participationRate: Math.min(96, 68 + zones.length * 4),
+      avgScore: Math.round(avgScore),
+      totalEvents: eventFilter && eventFilter !== 'All Events' ? 1 : 3
+    },
+    zonePerformance: zones.map(z => ({
+      zone: z.zone,
+      avgScore: z.avgScore,
+      teamCount: Math.round(z.teamCount * multiplier),
+      submissions: Math.round(z.submissions * multiplier)
+    })),
+    divisionCounts: {
+      foundation: Math.round(totalTeams * 0.45),
+      ascendant: Math.round(totalTeams * 0.35),
+      apex: Math.round(totalTeams * 0.2)
+    },
+    submissionTrend: [
+      { date: 'Apr 11', count: Math.round(totalSubmissions * 0.09) },
+      { date: 'Apr 12', count: Math.round(totalSubmissions * 0.1) },
+      { date: 'Apr 13', count: Math.round(totalSubmissions * 0.11) },
+      { date: 'Apr 14', count: Math.round(totalSubmissions * 0.13) },
+      { date: 'Apr 15', count: Math.round(totalSubmissions * 0.15) },
+      { date: 'Apr 16', count: Math.round(totalSubmissions * 0.18) },
+      { date: 'Apr 17', count: Math.round(totalSubmissions * 0.24) }
+    ],
+    scoreDistribution: [
+      { range: '0-20', count: Math.max(1, Math.round(totalTeams * 0.06)) },
+      { range: '21-40', count: Math.max(1, Math.round(totalTeams * 0.12)) },
+      { range: '41-60', count: Math.max(1, Math.round(totalTeams * 0.24)) },
+      { range: '61-80', count: Math.max(1, Math.round(totalTeams * 0.34)) },
+      { range: '81-100', count: Math.max(1, Math.round(totalTeams * 0.24)) }
+    ],
+    topZones: zones
+      .map((z, index) => ({
+        rank: index + 1,
+        zone: z.zone,
+        avgScore: z.avgScore,
+        teamCount: Math.round(z.teamCount * multiplier),
+        trend: z.trend
+      }))
+      .sort((a, b) => b.avgScore - a.avgScore)
+      .slice(0, 5)
+      .map((z, index) => ({ ...z, rank: index + 1 })),
+    alerts: [
+      { type: 'info', title: 'Demo mode enabled', description: 'The dashboard is using built-in sample analytics because no backend API URL is configured.' },
+      { type: 'warn', title: 'Backend required for live data', description: 'Browser-side calls to Anthropic or PostgreSQL are blocked by CORS and security rules.' },
+      { type: 'danger', title: 'Direct secret exposure avoided', description: 'API keys and database credentials should stay on a server, never in client-side HTML.' }
+    ]
+  };
+}
+
+function getDemoZoneDetail(zoneFilter, schoolFilter) {
+  const zone = DEMO_ZONES.find(z => z.zone === zoneFilter) || DEMO_ZONES[0];
+  const schools = schoolFilter ? zone.schools.filter(s => s.school === schoolFilter) : zone.schools;
+  const activeStudents = schools.reduce((sum, s) => sum + s.studentCount, 0);
+
+  return {
+    metrics: {
+      totalSchools: schools.length,
+      activeStudents,
+      avgCompletionTimeMinutes: 47 - Math.round(zone.avgScore / 10),
+      avgScore: zone.avgScore,
+      submissionRate: Math.min(97, 62 + zone.teamCount)
+    },
+    schoolPerformance: schools,
+    activityTrend: [
+      { label: '9 AM', active: Math.round(activeStudents * 0.18), submissions: 8 },
+      { label: '11 AM', active: Math.round(activeStudents * 0.24), submissions: 12 },
+      { label: '1 PM', active: Math.round(activeStudents * 0.3), submissions: 16 },
+      { label: '3 PM', active: Math.round(activeStudents * 0.45), submissions: 21 },
+      { label: '5 PM', active: Math.round(activeStudents * 0.56), submissions: 26 },
+      { label: '7 PM', active: Math.round(activeStudents * 0.42), submissions: 19 },
+      { label: '9 PM', active: Math.round(activeStudents * 0.28), submissions: 12 },
+      { label: '11 PM', active: Math.round(activeStudents * 0.14), submissions: 6 }
+    ],
+    teams: Array.from({ length: 8 }, (_, index) => ({
+      rank: index + 1,
+      name: `${zone.zone.split(' ')[0]} Team ${index + 1}`,
+      college: schools[index % schools.length]?.school || zone.zone,
+      score: Math.max(35, zone.avgScore + 10 - index * 4),
+      division: index < 2 ? 'APEX' : index < 5 ? 'ASCENDANT' : 'FOUNDATION',
+      memberCount: 3
+    }))
+  };
+}
+
+function getDemoStudentList(query, zone) {
+  const normalizedQuery = query.toLowerCase();
+  const students = DEMO_STUDENTS
+    .filter(student => !zone || student.college === zone)
+    .filter(student => !normalizedQuery || student.name.toLowerCase().includes(normalizedQuery) || student.college.toLowerCase().includes(normalizedQuery));
+
+  return { students };
+}
+
+function getDemoStudentDetail(student) {
+  const baseScore = student.score || 60;
+  return {
+    zoneAvgScore: Math.max(40, baseScore - 8),
+    globalAvgScore: 68,
+    avgCompletionMinutes: Math.max(18, 55 - Math.round(baseScore / 3)),
+    hintsUsed: Math.max(0, 8 - Math.round(baseScore / 15)),
+    thinkingLevel: baseScore >= 85 ? 'advanced' : baseScore >= 65 ? 'intermediate' : 'beginner',
+    efficiencyScore: Math.min(98, baseScore + 4),
+    problemScores: [
+      { problem: 'Array Relay', score: Math.round(baseScore * 0.18), maxScore: 20, timeMinutes: 24 },
+      { problem: 'API Sprint', score: Math.round(baseScore * 0.22), maxScore: 25, timeMinutes: 31 },
+      { problem: 'Debug Dungeon', score: Math.round(baseScore * 0.28), maxScore: 30, timeMinutes: 42 },
+      { problem: 'Final Optimizer', score: Math.round(baseScore * 0.24), maxScore: 25, timeMinutes: 37 }
+    ],
+    submissionHistory: [
+      { date: 'Apr 13', score: Math.max(18, baseScore - 24) },
+      { date: 'Apr 14', score: Math.max(25, baseScore - 18) },
+      { date: 'Apr 15', score: Math.max(32, baseScore - 12) },
+      { date: 'Apr 16', score: Math.max(40, baseScore - 6) },
+      { date: 'Apr 17', score: baseScore }
+    ]
+  };
+}
+
+async function getDemoAnalytics(request) {
+  await delay(180);
+
+  if (request.type === 'admin_overview') {
+    return getDemoAdminOverview(request.filters?.zone, request.filters?.event);
+  }
+  if (request.type === 'zone_detail') {
+    return getDemoZoneDetail(request.filters?.zone, request.filters?.school);
+  }
+  if (request.type === 'student_list') {
+    return getDemoStudentList(request.filters?.query || '', request.filters?.zone || '');
+  }
+  if (request.type === 'student_detail') {
+    return getDemoStudentDetail(request.student || {});
+  }
+
+  return null;
+}
+
+async function fetchAnalytics(request) {
+  if (!API_PROXY_URL) {
+    setConnectionStatus('Demo Data');
+    return getDemoAnalytics(request);
+  }
+
+  try {
+    const res = await fetch(API_PROXY_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request)
+    });
+
+    if (!res.ok) {
+      throw new Error('API error: ' + res.status);
+    }
+
+    setConnectionStatus('Live API');
+    return await res.json();
+  } catch(e) {
+    console.error('Fetch error:', e);
+    setConnectionStatus('Demo Data');
+    return getDemoAnalytics(request);
+  }
+}
+
+// ── HELPERS ───────────────────────────────────────────────
+function destroyChart(id) {
+  if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+
+function divColor(div) {
+  if (!div) return '#8899aa';
+  const d = div.toUpperCase();
+  if (d === 'APEX') return '#8b5cf6';
+  if (d === 'ASCENDANT') return '#3b82f6';
+  return '#10b981';
+}
+
+function scoreColor(s) {
+  if (s >= 80) return '#10b981';
+  if (s >= 50) return '#f59e0b';
+  return '#ef4444';
+}
+
+// ── ADMIN PAGE ────────────────────────────────────────────
+async function loadAdminData() {
+  document.getElementById('admin-metrics').innerHTML = `<div class="loading-overlay" style="grid-column:1/-1"><div class="spinner"></div><div class="loading-text">Fetching from database...</div></div>`;
+  setConnectionStatus(API_PROXY_URL ? 'Querying API...' : 'Loading Demo...');
+
+  const zone = document.getElementById('admin-zone-filter').value;
+  const event = document.getElementById('admin-event-filter').value;
+
+  const data = await fetchAnalytics({
+    type: 'admin_overview',
+    filters: { zone, event },
+    request: {
+      metrics: { totalTeams: 'number', totalStudents: 'number', totalSubmissions: 'number', participationRate: 'percentage 0-100', avgScore: 'number 0-100', totalEvents: 'number' },
+      zonePerformance: 'array of {zone: string (college name), avgScore: number, teamCount: number, submissions: number}',
+      divisionCounts: '{ foundation: number, ascendant: number, apex: number }',
+      submissionTrend: 'array of 7 objects {date: "MMM DD", count: number}',
+      scoreDistribution: 'array of 5 objects {range: "0-20"|"21-40"|"41-60"|"61-80"|"81-100", count: number}',
+      topZones: 'array of 5 {rank: number, zone: string, avgScore: number, teamCount: number, trend: "up"|"down"|"stable"}',
+      alerts: 'array of 3-4 {type: "warn"|"danger"|"info", title: string, description: string}'
+    }
+  });
+
+  if (!data) {
+    document.getElementById('admin-metrics').innerHTML = `<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--danger)">Failed to load data. Check API connectivity.</div>`;
+    return;
+  }
+
+  adminData = data;
+  populateZoneFilters(data.zonePerformance);
+  renderAdminMetrics(data);
+  renderZoneBarChart(data.zonePerformance);
+  renderDivPieChart(data.divisionCounts);
+  renderSubmissionTrend(data.submissionTrend);
+  renderScoreDist(data.scoreDistribution);
+  renderTopZones(data.topZones);
+  renderAlerts(data.alerts);
+}
+
+function populateZoneFilters(zones) {
+  if (!zones) return;
+  allZones = zones.map(z => z.zone);
+  const filters = ['admin-zone-filter', 'zone-filter', 'student-zone-filter'];
+  filters.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    while (sel.options.length > 1) sel.remove(1);
+    allZones.forEach(z => {
+      const opt = document.createElement('option');
+      opt.value = z; opt.textContent = z;
+      sel.appendChild(opt);
+    });
+    if (cur) sel.value = cur;
+  });
+}
+
+function renderAdminMetrics(d) {
+  const m = d.metrics || {};
+  document.getElementById('admin-metrics').innerHTML = `
+    <div class="metric-card c-blue">
+      <div class="metric-label">Total Zones</div>
+      <div class="metric-value">${(d.zonePerformance || []).length}</div>
+      <div class="metric-sub">Active colleges</div>
+    </div>
+    <div class="metric-card c-teal">
+      <div class="metric-label">Total Teams</div>
+      <div class="metric-value">${m.totalTeams || 0}</div>
+      <div class="metric-sub">Registered teams</div>
+    </div>
+    <div class="metric-card c-violet">
+      <div class="metric-label">Total Students</div>
+      <div class="metric-value">${m.totalStudents || 0}</div>
+      <div class="metric-sub">Platform-wide</div>
+    </div>
+    <div class="metric-card c-green">
+      <div class="metric-label">Participation Rate</div>
+      <div class="metric-value">${Math.round(m.participationRate || 0)}%</div>
+      <div class="metric-sub">Active / registered</div>
+    </div>
+    <div class="metric-card c-amber">
+      <div class="metric-label">Total Submissions</div>
+      <div class="metric-value">${m.totalSubmissions || 0}</div>
+      <div class="metric-sub">All time</div>
+    </div>
+    <div class="metric-card c-red">
+      <div class="metric-label">Avg Score</div>
+      <div class="metric-value">${Math.round(m.avgScore || 0)}</div>
+      <div class="metric-sub">Platform average</div>
+    </div>
+  `;
+}
+
+function renderZoneBarChart(zones) {
+  if (!zones || !zones.length) return;
+  destroyChart('zoneBar');
+  const ctx = document.getElementById('zoneBarChart');
+  chartInstances['zoneBar'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: zones.map(z => z.zone.length > 20 ? z.zone.substring(0, 18) + '…' : z.zone),
+      datasets: [{
+        label: 'Avg Score',
+        data: zones.map(z => Math.round(z.avgScore)),
+        backgroundColor: zones.map(z => z.avgScore >= 70 ? '#10b98133' : z.avgScore >= 50 ? '#f59e0b33' : '#ef444433'),
+        borderColor: zones.map(z => z.avgScore >= 70 ? '#10b981' : z.avgScore >= 50 ? '#f59e0b' : '#ef4444'),
+        borderWidth: 1.5, borderRadius: 6,
+      }, {
+        label: 'Submissions',
+        data: zones.map(z => z.submissions),
+        backgroundColor: '#3b82f622', borderColor: '#3b82f6',
+        borderWidth: 1.5, borderRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8899aa', font: { size: 11 } }, grid: { color: 'rgba(99,179,237,0.06)' } },
+        y: { ticks: { color: '#8899aa', font: { size: 11 } }, grid: { color: 'rgba(99,179,237,0.06)' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function renderDivPieChart(counts) {
+  if (!counts) return;
+  destroyChart('divPie');
+  const labels = ['Foundation', 'Ascendant', 'Apex'];
+  const vals = [counts.foundation || 0, counts.ascendant || 0, counts.apex || 0];
+  const colors = ['#10b981', '#3b82f6', '#8b5cf6'];
+  const total = vals.reduce((a, b) => a + b, 0);
+
+  const legend = document.getElementById('divLegend');
+  legend.innerHTML = labels.map((l, i) =>
+    `<span style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--muted)"><span style="width:10px;height:10px;border-radius:2px;background:${colors[i]}"></span>${l} ${total ? Math.round(vals[i]/total*100) : 0}%</span>`
+  ).join('');
+
+  const ctx = document.getElementById('divPieChart');
+  chartInstances['divPie'] = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: vals, backgroundColor: colors.map(c => c + '99'), borderColor: colors, borderWidth: 2 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      cutout: '65%'
+    }
+  });
+}
+
+function renderSubmissionTrend(trend) {
+  if (!trend || !trend.length) return;
+  destroyChart('subTrend');
+  const ctx = document.getElementById('submissionTrendChart');
+  chartInstances['subTrend'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: trend.map(t => t.date),
+      datasets: [{
+        label: 'Submissions',
+        data: trend.map(t => t.count),
+        borderColor: '#06b6d4', backgroundColor: '#06b6d422',
+        borderWidth: 2, fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#06b6d4'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8899aa', font: { size: 11 } }, grid: { color: 'rgba(99,179,237,0.06)' } },
+        y: { ticks: { color: '#8899aa', font: { size: 11 } }, grid: { color: 'rgba(99,179,237,0.06)' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function renderScoreDist(dist) {
+  if (!dist || !dist.length) return;
+  destroyChart('scoreDist');
+  const ctx = document.getElementById('scoreDistChart');
+  chartInstances['scoreDist'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: dist.map(d => d.range),
+      datasets: [{
+        label: 'Teams',
+        data: dist.map(d => d.count),
+        backgroundColor: ['#ef444433', '#f59e0b33', '#f59e0b66', '#10b98133', '#10b98166'],
+        borderColor: ['#ef4444', '#f59e0b', '#f59e0b', '#10b981', '#10b981'],
+        borderWidth: 1.5, borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8899aa', font: { size: 11 } }, grid: { color: 'rgba(99,179,237,0.06)' } },
+        y: { ticks: { color: '#8899aa', font: { size: 11 } }, grid: { color: 'rgba(99,179,237,0.06)' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function renderTopZones(zones) {
+  if (!zones) return;
+  const tbody = document.getElementById('topZonesTable');
+  tbody.innerHTML = zones.map((z, i) => `
+    <tr onclick="zoneRowClick('${z.zone}')" style="cursor:pointer">
+      <td><span style="font-family:var(--mono);font-size:13px;color:var(--muted)">${i+1}</span></td>
+      <td style="font-weight:500">${z.zone}</td>
+      <td>${z.teamCount}</td>
+      <td>
+        <div class="rank-bar-wrap">
+          <div class="rank-bar-bg"><div class="rank-bar-fill" style="width:${z.avgScore}%;background:${scoreColor(z.avgScore)}"></div></div>
+          <span style="font-family:var(--mono);font-size:12px;width:32px;text-align:right">${Math.round(z.avgScore)}</span>
+        </div>
+      </td>
+      <td><span class="badge ${z.trend === 'up' ? 'badge-green' : z.trend === 'down' ? 'badge-red' : 'badge-blue'}">${z.trend === 'up' ? '↑' : z.trend === 'down' ? '↓' : '→'} ${z.trend}</span></td>
+    </tr>
+  `).join('');
+}
+
+function renderAlerts(alerts) {
+  if (!alerts) return;
+  const icons = { warn: '⚠', danger: '⛔', info: 'ℹ' };
+  document.getElementById('alertsList').innerHTML = alerts.map(a => `
+    <div class="alert-item">
+      <div class="alert-icon ${a.type}">${icons[a.type] || '•'}</div>
+      <div class="alert-body">
+        <div class="alert-title">${a.title}</div>
+        <div class="alert-desc">${a.description}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function zoneRowClick(zone) {
+  document.querySelectorAll('.nav-tab')[1].click();
+  setTimeout(() => {
+    const sel = document.getElementById('zone-filter');
+    sel.value = zone;
+    loadZoneData();
+  }, 100);
+}
+
+// ── ZONE PAGE ─────────────────────────────────────────────
+async function loadZoneData() {
+  const zone = document.getElementById('zone-filter').value;
+  const school = document.getElementById('zone-school-filter').value;
+
+  if (allZones.length === 0 && adminData) populateZoneFilters(adminData.zonePerformance);
+
+  if (!zone) {
+    document.getElementById('zone-metrics').innerHTML = `<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--muted)">Select a zone to view metrics</div>`;
+    return;
+  }
+
+  document.getElementById('zone-metrics').innerHTML = `<div class="loading-overlay" style="grid-column:1/-1"><div class="spinner"></div><div class="loading-text">Loading zone data...</div></div>`;
+
+  const data = await fetchAnalytics({
+    type: 'zone_detail',
+    filters: { zone, school },
+    request: {
+      metrics: { totalSchools: 'number', activeStudents: 'number', avgCompletionTimeMinutes: 'number', avgScore: 'number 0-100', submissionRate: 'percentage' },
+      schoolPerformance: 'array of 6 {school: string, avgScore: number, studentCount: number}',
+      activityTrend: 'array of 8 {label: string, active: number, submissions: number}',
+      teams: 'array of 8 {rank: number, name: string, college: string, score: number, division: "FOUNDATION"|"ASCENDANT"|"APEX", memberCount: number}'
+    }
+  });
+
+  if (!data) return;
+
+  // Populate school filter
+  if (data.schoolPerformance) {
+    const sel = document.getElementById('zone-school-filter');
+    while (sel.options.length > 1) sel.remove(1);
+    data.schoolPerformance.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.school; opt.textContent = s.school;
+      sel.appendChild(opt);
+    });
+  }
+
+  const m = data.metrics || {};
+  document.getElementById('zone-metrics').innerHTML = `
+    <div class="metric-card c-blue">
+      <div class="metric-label">Total Schools</div>
+      <div class="metric-value">${m.totalSchools || 0}</div>
+      <div class="metric-sub">In this zone</div>
+    </div>
+    <div class="metric-card c-teal">
+      <div class="metric-label">Active Students</div>
+      <div class="metric-value">${m.activeStudents || 0}</div>
+      <div class="metric-sub">With submissions</div>
+    </div>
+    <div class="metric-card c-violet">
+      <div class="metric-label">Avg Completion</div>
+      <div class="metric-value">${Math.round(m.avgCompletionTimeMinutes || 0)}<span style="font-size:14px">m</span></div>
+      <div class="metric-sub">Per problem</div>
+    </div>
+    <div class="metric-card c-green">
+      <div class="metric-label">Zone Avg Score</div>
+      <div class="metric-value">${Math.round(m.avgScore || 0)}</div>
+      <div class="metric-sub">All teams</div>
+    </div>
+    <div class="metric-card c-amber">
+      <div class="metric-label">Submission Rate</div>
+      <div class="metric-value">${Math.round(m.submissionRate || 0)}%</div>
+      <div class="metric-sub">Teams submitted</div>
+    </div>
+  `;
+
+  renderSchoolPerfChart(data.schoolPerformance);
+  renderActivityTrend(data.activityTrend);
+  renderZoneTeams(data.teams);
+}
+
+function renderSchoolPerfChart(schools) {
+  if (!schools) return;
+  destroyChart('schoolPerf');
+  const ctx = document.getElementById('schoolPerfChart');
+  chartInstances['schoolPerf'] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: schools.map(s => s.school.length > 18 ? s.school.substring(0, 16) + '…' : s.school),
+      datasets: [{
+        label: 'Avg Score',
+        data: schools.map(s => Math.round(s.avgScore)),
+        backgroundColor: '#8b5cf622', borderColor: '#8b5cf6', borderWidth: 1.5, borderRadius: 6
+      }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8899aa', font: { size: 11 } }, grid: { color: 'rgba(99,179,237,0.06)' }, max: 100 },
+        y: { ticks: { color: '#8899aa', font: { size: 11 } }, grid: { color: 'rgba(99,179,237,0.06)' } }
+      }
+    }
+  });
+}
+
+function renderActivityTrend(trend) {
+  if (!trend) return;
+  destroyChart('activity');
+  const ctx = document.getElementById('activityTrendChart');
+  chartInstances['activity'] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: trend.map(t => t.label),
+      datasets: [{
+        label: 'Active', data: trend.map(t => t.active),
+        borderColor: '#10b981', backgroundColor: '#10b98122', borderWidth: 2, fill: true, tension: 0.4, pointRadius: 3
+      }, {
+        label: 'Submissions', data: trend.map(t => t.submissions),
+        borderColor: '#3b82f6', backgroundColor: 'transparent', borderWidth: 2, borderDash: [4, 4], tension: 0.4, pointRadius: 3
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8899aa', font: { size: 11 } }, grid: { color: 'rgba(99,179,237,0.06)' } },
+        y: { ticks: { color: '#8899aa', font: { size: 11 } }, grid: { color: 'rgba(99,179,237,0.06)' }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+function renderZoneTeams(teams) {
+  if (!teams) return;
+  document.getElementById('zoneTeamsTable').innerHTML = teams.map(t => `
+    <tr>
+      <td><span style="font-family:var(--mono);font-size:13px;color:var(--muted)">#${t.rank}</span></td>
+      <td style="font-weight:500">${t.name}</td>
+      <td style="color:var(--muted);font-size:12px">${t.college}</td>
+      <td>
+        <span style="font-family:var(--mono);font-size:14px;color:${scoreColor(t.score)}">${t.score}</span>
+      </td>
+      <td><span class="badge" style="background:${divColor(t.division)}22;color:${divColor(t.division)}">${t.division}</span></td>
+      <td style="color:var(--muted)">${t.memberCount}/${3}</td>
+    </tr>
+  `).join('');
+}
+
+// ── STUDENT PAGE ──────────────────────────────────────────
+async function loadStudentList() {
+  const query = document.getElementById('student-search').value.trim();
+  const zone = document.getElementById('student-zone-filter').value;
+
+  if (allZones.length === 0 && adminData) populateZoneFilters(adminData.zonePerformance);
+
+  document.getElementById('studentListTable').innerHTML = `<tr><td colspan="4" style="padding:1.5rem;text-align:center"><div class="spinner" style="margin:auto"></div></td></tr>`;
+
+  const data = await fetchAnalytics({
+    type: 'student_list',
+    filters: { query, zone },
+    request: {
+      students: 'array of 8-10 {id: string, name: string, college: string, email: string, individualScore: number, totalSubmissions: number, teamName: string, division: "FOUNDATION"|"ASCENDANT"|"APEX", rank: number}'
+    }
+  });
+
+  if (!data || !data.students) return;
+
+  document.getElementById('studentListTable').innerHTML = data.students.map(s => `
+    <tr onclick="loadStudentDetail(${JSON.stringify(JSON.stringify(s))})" style="cursor:pointer">
+      <td style="font-weight:500">${s.name}</td>
+      <td style="color:var(--muted);font-size:12px">${s.college.substring(0, 20)}</td>
+      <td><span style="font-family:var(--mono);color:${scoreColor(s.individualScore)}">${s.individualScore}</span></td>
+      <td><span style="font-family:var(--mono);color:var(--muted)">#${s.rank}</span></td>
+    </tr>
+  `).join('');
+}
+
+async function loadStudentDetail(studentJson) {
+  const student = JSON.parse(studentJson);
+  document.getElementById('studentDetail').innerHTML = `<div class="loading-overlay" style="min-height:300px"><div class="spinner"></div><div class="loading-text">Loading profile...</div></div>`;
+
+  const data = await fetchAnalytics({
+    type: 'student_detail',
+    student: { name: student.name, college: student.college, score: student.individualScore },
+    request: {
+      zoneAvgScore: 'number 0-100',
+      globalAvgScore: 'number 0-100',
+      avgCompletionMinutes: 'number',
+      hintsUsed: 'number 0-10',
+      thinkingLevel: '"beginner"|"intermediate"|"advanced"',
+      efficiencyScore: 'number 0-100',
+      problemScores: 'array of 4 {problem: string, score: number, maxScore: number, timeMinutes: number}',
+      submissionHistory: 'array of 5 {date: string, score: number}'
+    }
+  });
+
+  if (!data) return;
+
+  const initials = student.name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+  const thinkLvl = data.thinkingLevel || 'intermediate';
+  const thinkColors = { beginner: '#f59e0b', intermediate: '#3b82f6', advanced: '#8b5cf6' };
+  const thinkDots = { beginner: 1, intermediate: 2, advanced: 3 };
+
+  document.getElementById('studentDetail').innerHTML = `
+    <div class="student-card">
+      <div class="student-header">
+        <div class="student-avatar">${initials}</div>
+        <div>
+          <div class="student-name">${student.name}</div>
+          <div class="student-meta">${student.college} · ${student.teamName || 'No team'}</div>
+          <div style="margin-top:6px"><span class="badge" style="background:${divColor(student.division)}22;color:${divColor(student.division)}">${student.division}</span></div>
+        </div>
+        <div style="margin-left:auto;text-align:right">
+          <div style="font-family:var(--mono);font-size:32px;font-weight:700;color:${scoreColor(student.individualScore)}">${student.individualScore}</div>
+          <div style="font-size:12px;color:var(--muted)">Rank #${student.rank}</div>
+        </div>
+      </div>
+
+      <div class="stat-row">
+        <div class="stat-pill">
+          <div class="stat-pill-label">Submissions</div>
+          <div class="stat-pill-val" style="color:var(--accent)">${student.totalSubmissions}</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-pill-label">Avg Time</div>
+          <div class="stat-pill-val" style="color:var(--accent2)">${Math.round(data.avgCompletionMinutes || 0)}m</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-pill-label">Efficiency</div>
+          <div class="stat-pill-val" style="color:${scoreColor(data.efficiencyScore || 0)}">${Math.round(data.efficiencyScore || 0)}</div>
+        </div>
+      </div>
+
+      <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div class="compare-label" style="margin-bottom:10px">Thinking Level — ${thinkLvl}</div>
+        <div class="thinking-bar">
+          ${[1,2,3].map(n => `<div class="thinking-dot" style="background:${n <= thinkDots[thinkLvl] ? thinkColors[thinkLvl] : 'var(--bg2)'};width:${32 + n*8}px"></div>`).join('')}
+          <span style="font-size:12px;color:var(--muted);margin-left:8px">${data.hintsUsed || 0} hints used</span>
+        </div>
+      </div>
+
+      <div class="compare-grid" style="margin-bottom:14px">
+        <div class="compare-item">
+          <div class="compare-label">vs Zone Average</div>
+          <div class="compare-bars">
+            <div class="compare-bar-row">
+              <span class="compare-bar-label">Your score</span>
+              <div class="compare-bar-track"><div class="compare-bar-fill" style="width:${student.individualScore}%;background:var(--accent)"></div></div>
+              <span class="compare-bar-val">${student.individualScore}</span>
+            </div>
+            <div class="compare-bar-row">
+              <span class="compare-bar-label">Zone avg</span>
+              <div class="compare-bar-track"><div class="compare-bar-fill" style="width:${data.zoneAvgScore || 0}%;background:var(--muted)"></div></div>
+              <span class="compare-bar-val">${Math.round(data.zoneAvgScore || 0)}</span>
+            </div>
+          </div>
+        </div>
+        <div class="compare-item">
+          <div class="compare-label">vs Global Average</div>
+          <div class="compare-bars">
+            <div class="compare-bar-row">
+              <span class="compare-bar-label">Your score</span>
+              <div class="compare-bar-track"><div class="compare-bar-fill" style="width:${student.individualScore}%;background:var(--accent)"></div></div>
+              <span class="compare-bar-val">${student.individualScore}</span>
+            </div>
+            <div class="compare-bar-row">
+              <span class="compare-bar-label">Global avg</span>
+              <div class="compare-bar-track"><div class="compare-bar-fill" style="width:${data.globalAvgScore || 0}%;background:var(--muted)"></div></div>
+              <span class="compare-bar-val">${Math.round(data.globalAvgScore || 0)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      ${data.problemScores && data.problemScores.length ? `
+      <div style="background:var(--bg3);border-radius:10px;padding:14px">
+        <div class="compare-label" style="margin-bottom:10px">Problem Breakdown</div>
+        ${data.problemScores.map(p => `
+          <div class="compare-bar-row" style="margin-bottom:8px">
+            <span class="compare-bar-label" style="font-size:11px">${p.problem.substring(0,16)}</span>
+            <div class="compare-bar-track"><div class="compare-bar-fill" style="width:${Math.round(p.score/p.maxScore*100)}%;background:${scoreColor(Math.round(p.score/p.maxScore*100))}"></div></div>
+            <span class="compare-bar-val">${p.score}/${p.maxScore}</span>
+          </div>
+        `).join('')}
+      </div>` : ''}
+    </div>
+  `;
+}
+
+function debounceStudentSearch() {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(loadStudentList, 500);
+}
+
+// ── INIT ──────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  setConnectionStatus(API_PROXY_URL ? 'Initializing API...' : 'Initializing Demo...');
+  loadAdminData();
+});
+</script>
+</body>
+</html>

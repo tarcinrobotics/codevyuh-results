@@ -1,0 +1,1493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>School Dashboard — Velammal School Campus Analysis</title>
+  <meta name="description" content="Drill-down analytics for individual school zones — Velammal School Management Platform." />
+  <script>
+    (() => {
+      const stored = localStorage.getItem('dashboard-theme');
+      const theme = stored === 'light' || stored === 'dark'
+        ? stored
+        : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/topbar.css" />
+  <link rel="stylesheet" href="/css/filters.css" />
+  <link rel="stylesheet" href="/css/panels.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    /* ── School-dashboard specific overrides ─────────────── */
+    :root {
+      --zone-accent: #6366f1;
+      --zone-accent-dim: rgba(99,102,241,0.18);
+      --subbar-height: 46px;
+    }
+
+    /* ── School primary bar (fixed, row 1) ─────────────────────── */
+    .zone-primary-bar {
+      position: fixed;
+      top: var(--topbar-height);
+      left: 0;
+      right: 0;
+      z-index: 992;       /* above filterbar (990) */
+      min-height: var(--subbar-height);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 0 24px;
+      background: var(--bar-strong-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .zone-primary-bar label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* push filterbar below zone-primary-bar (≈ 46px) */
+    .filterbar { top: calc(var(--topbar-height) + var(--subbar-height)) !important; }
+
+    /* push page-wrapper below both fixed bars */
+    .page-wrapper { padding-top: var(--page-top-offset) !important; }
+
+    .zone-name-badge {
+      font-size: 0.86rem;
+      font-weight: 600;
+      color: var(--zone-accent);
+      padding: 3px 12px;
+      background: var(--zone-accent-dim);
+      border-radius: 20px;
+      white-space: nowrap;
+      max-width: 300px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .zone-refresh-btn {
+      padding: 5px 14px;
+      border-radius: 7px;
+      background: var(--zone-accent);
+      border: none;
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+    .zone-refresh-btn:hover { opacity: 0.82; }
+
+    /* ── Placeholder (no zone selected) ───────────────── */
+    #placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 55vh;
+      gap: 16px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    #placeholder svg { opacity: 0.3; }
+    #placeholder p   { max-width: 340px; font-size: 0.88rem; line-height: 1.6; }
+
+    /* ── 6 KPI cards ─────────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: var(--space-md);
+      margin-bottom: var(--space-md);
+    }
+    .kpi-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-panel);
+      border-radius: 12px;
+      padding: 18px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .kpi-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .kpi-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      line-height: 1;
+    }
+    .kpi-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+    .kpi-accent-green  { border-top: 3px solid #10b981; }
+    .kpi-accent-blue   { border-top: 3px solid #3b82f6; }
+    .kpi-accent-purple { border-top: 3px solid #a855f7; }
+    .kpi-accent-amber  { border-top: 3px solid #f59e0b; }
+    .kpi-accent-teal   { border-top: 3px solid #14b8a6; }
+    .kpi-accent-indigo { border-top: 3px solid #6366f1; }
+
+    /* ── Chart rows ────────────────────────────────────── */
+    .chart-dual-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-md);
+      margin-bottom: var(--space-md);
+    }
+    @media (max-width: 900px) {
+      .chart-dual-row { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 1024px) {
+      :root {
+        --subbar-height: 58px;
+      }
+      .zone-primary-bar {
+        padding: 8px 16px;
+      }
+    }
+    @media (max-width: 768px) {
+      :root {
+        --subbar-height: 94px;
+      }
+      .zone-primary-bar {
+        height: auto;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .zone-name-badge {
+        max-width: 100%;
+      }
+    }
+    .chart-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-panel);
+      border-radius: 14px;
+      padding: var(--space-md);
+    }
+    .chart-panel-title {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .chart-panel-title span.dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .top-students-hero {
+      position: relative;
+      overflow: hidden;
+      margin-bottom: var(--space-md);
+      background: var(--hero-panel-bg);
+      border: 1px solid var(--hero-panel-border);
+      border-radius: 20px;
+      padding: 24px 26px;
+      box-shadow: var(--hero-panel-shadow);
+    }
+    .top-students-hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: var(--hero-panel-overlay);
+      pointer-events: none;
+    }
+    .top-students-hero-header {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 18px;
+    }
+    .top-students-hero-label {
+      font-size: 0.76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--hero-label-color);
+      margin-bottom: 8px;
+    }
+    .top-students-hero-title {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 850;
+      color: var(--hero-title-color);
+      letter-spacing: -0.05em;
+      line-height: 1;
+    }
+    .top-students-hero-note {
+      margin-top: 8px;
+      max-width: 640px;
+      font-size: 0.92rem;
+      line-height: 1.55;
+      color: var(--hero-note-color);
+    }
+    .top-students-hero-chip {
+      position: relative;
+      z-index: 1;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: var(--hero-chip-bg);
+      border: 1px solid var(--hero-chip-border);
+      color: var(--hero-chip-color);
+      font-size: 0.76rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .top-students-podium {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .top-student-card {
+      background: var(--hero-card-bg);
+      border: 1px solid var(--hero-card-border);
+      border-radius: 18px;
+      padding: 18px;
+      min-height: 166px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .top-student-medal {
+      font-size: 1.5rem;
+      line-height: 1;
+    }
+    .top-student-rank {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--hero-rank-color);
+    }
+    .top-student-name {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--hero-title-color);
+      line-height: 1.25;
+    }
+    .top-student-meta {
+      font-size: 0.84rem;
+      color: var(--hero-note-color);
+    }
+    .top-student-score {
+      margin-top: auto;
+      font-size: 1.7rem;
+      font-weight: 850;
+      color: var(--hero-title-color);
+      letter-spacing: -0.04em;
+    }
+    .top-student-score-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--hero-score-label-color);
+    }
+    .top-student-card.rank-1-card { border-color: var(--hero-rank-1-border); background: var(--hero-rank-1-bg); }
+    .top-student-card.rank-2-card { border-color: var(--hero-rank-2-border); background: var(--hero-rank-2-bg); }
+    .top-student-card.rank-3-card { border-color: var(--hero-rank-3-border); background: var(--hero-rank-3-bg); }
+    @media (max-width: 900px) {
+      .top-students-podium { grid-template-columns: 1fr; }
+    }
+
+    /* ── Leaderboard table ─────────────────────────────── */
+    .leaderboard-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    .leaderboard-table th {
+      text-align: left;
+      padding: 6px 10px;
+      color: var(--text-muted);
+      font-weight: 500;
+      border-bottom: 1px solid var(--border-panel);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .leaderboard-table td {
+      padding: 9px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      color: var(--text-secondary);
+    }
+    .leaderboard-table tr:hover td { background: rgba(255,255,255,0.03); }
+    .rank-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      font-size: 0.7rem;
+      font-weight: 700;
+    }
+    .rank-1 { background: #f59e0b22; color: #f59e0b; border: 1px solid #f59e0b66; }
+    .rank-2 { background: #94a3b822; color: #94a3b8; border: 1px solid #94a3b866; }
+    .rank-3 { background: #cd7f3222; color: #cd7f32; border: 1px solid #cd7f3266; }
+    .rank-n { background: rgba(255,255,255,0.04); color: var(--text-muted); border: 1px solid var(--border-panel); }
+
+    /* score bar inside table */
+    .score-bar-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .score-bar {
+      height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #6366f1, #a78bfa);
+      min-width: 4px;
+    }
+
+    /* auto-refresh indicator */
+    .refresh-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+    .refresh-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.4; transform: scale(0.8); }
+    }
+  </style>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- ── Top Bar ─────────────────────────────────────────────────────── -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-logo-wrap">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 3L2 8v2h2v10h4v-6h4v6h4V10h2V8L12 3zm0 2.236L19 9H5l7-3.764z"/>
+        </svg>
+      </div>
+      <div class="topbar-title-group">
+        <span class="topbar-title">Velammal School Campus Analysis</span>
+        <span class="topbar-subtitle">School Management Platform</span>
+      </div>
+      <div class="topbar-divider"></div>
+      <div class="route-switcher" aria-label="Dashboard navigation">
+        <span class="route-switcher-label">View</span>
+        <select class="route-select" aria-label="Change dashboard view" onchange="if (this.value) window.location.href = this.value;">
+          <option value="/admin-overview">Admin Overview</option>
+          <option value="/zone-dashboard" selected>School Dashboard</option>
+          <option value="/parent-view">Parent View</option>
+        </select>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch theme">
+        <svg data-theme-icon viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
+        <span data-theme-label>Dark Mode</span>
+      </button>
+      <div class="powered-by" style="margin-left:16px">
+        <span class="powered-by-text">Powered by</span>
+        <img src="/tarcin-logo.webp" alt="Tarcin Robotics" class="powered-by-logo" />
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Row 1: School Selector ──────────────────────────────────────── -->
+  <div class="zone-primary-bar">
+    <label for="zone-select"><i data-lucide="school" class="icon-sm"></i> School</label>
+    <select id="zone-select" class="filter-select" style="min-width:220px;max-width:300px" aria-label="Select a school zone">
+      <option value="">— Choose a School —</option>
+    </select>
+    <span class="zone-name-badge" id="zone-name-badge" style="display:none"></span>
+  </div>
+
+  <!-- ── Row 2: Filters bar (matching admin-overview style) ─────────── -->
+  <div class="filterbar">
+    <span class="filterbar-label"><i data-lucide="sliders-horizontal" class="icon-sm"></i> Filters</span>
+    <div class="filterbar-sep"></div>
+    <div class="filters-group">
+
+      <!-- Level Filter -->
+      <!-- <div class="filter-item">
+        <label class="filter-item-label" for="filter-level">Level</label>
+        <select id="filter-level" class="filter-select" aria-label="Filter by submission level">
+          <option value="">All Levels</option>
+          <option value="1">Level 1</option>
+          <option value="2">Level 2</option>
+          <option value="3">Level 3</option>
+          <option value="4">Level 4</option>
+        </select>
+      </div> -->
+
+      <!-- Grade Filter -->
+      <div class="filter-item">
+        <label class="filter-item-label" for="filter-grade">Grade</label>
+        <select id="filter-grade" class="filter-select" aria-label="Filter by student grade">
+          <option value="">All Grades</option>
+        </select>
+      </div>
+
+      <!-- Student Status Filter -->
+      <div class="filter-item">
+        <label class="filter-item-label" for="filter-status">Student Status</label>
+        <select id="filter-status" class="filter-select" aria-label="Filter by student activity status">
+          <option value="">All Students</option>
+          <option value="active">Active (has submissions)</option>
+          <option value="inactive">Inactive (no submissions)</option>
+        </select>
+      </div>
+
+      <!-- Clear button -->
+      <button class="btn-clear-filters" id="btn-clear-filters" title="Clear all filters">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        Clear
+      </button>
+    </div>
+
+    <div class="filterbar-right">
+      <span id="filter-active-badge" class="filter-badge" style="display:none"></span>
+      <span class="filter-status-text" id="filter-status-text">Showing all data</span>
+    </div>
+  </div>
+
+  <!-- ── Main Content ─────────────────────────────────────────────────── -->
+  <div class="page-wrapper">
+    <main class="main-content">
+
+      <!-- Placeholder (no zone selected yet) -->
+      <div id="placeholder">
+        <svg width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="2" y1="12" x2="22" y2="12"/>
+          <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/>
+        </svg>
+        <h2 style="color:var(--text-primary);font-size:1.3rem;margin:0">Select a School</h2>
+        <p>Choose a school zone from the dropdown above to view its detailed performance analytics across 6 panels.</p>
+      </div>
+
+      <!-- Dashboard panels (hidden until zone is selected) -->
+      <div id="zone-panels" style="display:none">
+
+        <!-- ── Panel 1 — Top Students Hero ─────────────────────────── -->
+        <div class="top-students-hero">
+          <div class="top-students-hero-header">
+            <div>
+              <div class="top-students-hero-label">Top Student Highlights</div>
+              <div class="top-students-hero-title">Top 3 Students in This School</div>
+              <div id="top-students-hero-note" class="top-students-hero-note">
+                Select a school to highlight the top total-score performers.
+              </div>
+            </div>
+            <div class="top-students-hero-chip">Ranked by total score</div>
+          </div>
+          <div id="top-students-podium" class="top-students-podium"></div>
+        </div>
+
+        <!-- ── Panel 2 — KPI Cards ──────────────────────────────────── -->
+        <div class="panel" style="margin-bottom:var(--space-md)">
+          <div class="panel-title">
+            <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            School Overview — <span id="kpi-zone-name" style="color:var(--zone-accent)">—</span>
+          </div>
+          <div class="kpi-grid" id="kpi-grid">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- ── Panel 2 & 3 — Score Bands + Score Distribution ─────── -->
+        <div class="chart-dual-row">
+          <!-- Score Bands -->
+          <div class="chart-panel">
+            <div class="chart-panel-title">
+              <span class="dot" style="background:#6366f1"></span>
+              Score Bands by Grade
+            </div>
+            <div style="position:relative;height:280px">
+              <canvas id="level-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- Score Distribution Doughnut -->
+          <div class="chart-panel">
+            <div class="chart-panel-title">
+              <span class="dot" style="background:#10b981"></span>
+              Student Score Distribution
+            </div>
+            <div style="position:relative;height:280px">
+              <canvas id="score-dist-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ── Panel 5 — Score Milestones by Grade ───────────────── -->
+        <div class="panel" style="margin-bottom:var(--space-md)">
+          <div class="panel-title">
+            <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 20V10"/>
+              <path d="M18 20V4"/>
+              <path d="M6 20v-6"/>
+            </svg>
+            Score Milestones by Grade
+          </div>
+          <div style="position:relative;height:240px">
+            <canvas id="score-milestones-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- ── Panel 6 & 7 — Leaderboard + Grade-wise ────────────── -->
+        <div class="chart-dual-row">
+          <!-- Top Student Leaderboard -->
+          <div class="chart-panel" style="overflow:auto;max-height:440px">
+            <div class="chart-panel-title">
+              <span class="dot" style="background:#f59e0b"></span>
+              Top Students Leaderboard
+              <span id="leaderboard-count" class="section-badge" style="font-weight:400"></span>
+            </div>
+            <table class="leaderboard-table" id="leaderboard-table">
+              <thead>
+                <tr>
+                  <th style="width:36px">#</th>
+                  <th>Student</th>
+              <th style="text-align:right">Grade</th>
+              <th style="text-align:right">Subs</th>
+              <th>Total Score</th>
+            </tr>
+          </thead>
+              <tbody id="leaderboard-tbody"></tbody>
+            </table>
+          </div>
+
+          <!-- Grade-wise Stats Chart -->
+          <div class="chart-panel">
+            <div class="chart-panel-title">
+              <span class="dot" style="background:#ec4899"></span>
+              Grade-wise Performance
+            </div>
+            <div style="position:relative;height:360px">
+              <canvas id="grade-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Panel 8 — Inactive Students ──────────────────────────── -->
+        <div class="panel" style="margin-bottom:var(--space-md)">
+          <div class="panel-title">
+            <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+              <line x1="17" y1="3" x2="21" y2="7"/><line x1="21" y1="3" x2="17" y2="7"/>
+            </svg>
+            Inactive Students &nbsp;<span id="inactive-count" class="section-badge" style="font-weight:400;background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.3)"></span>
+            <span style="margin-left:auto;display:flex;align-items:center;gap:8px">
+              <input id="inactive-search" type="text" placeholder="🔍 Search by name or grade…"
+                style="padding:5px 12px;border-radius:7px;background:var(--bg-input);border:1px solid var(--border);
+                       color:var(--text-primary);font-size:0.78rem;font-family:inherit;outline:none;width:220px"
+                oninput="filterInactiveTable(this.value)" />
+            </span>
+          </div>
+          <div style="max-height:340px;overflow-y:auto">
+            <table class="leaderboard-table" id="inactive-table">
+              <thead>
+                <tr>
+                  <th style="width:36px">#</th>
+                  <th>Student Name</th>
+                  <th>Username</th>
+                  <th style="text-align:center">Grade</th>
+                  <th style="text-align:right">Joined</th>
+                  <th style="text-align:center">Status</th>
+                </tr>
+              </thead>
+              <tbody id="inactive-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- ── Panels 9 & 10 — School Rank + Submission Time Analysis ── -->
+        <div class="chart-dual-row">
+
+          <!-- School Rank -->
+          <div class="chart-panel">
+            <div class="chart-panel-title">
+              <span class="dot" style="background:#f59e0b"></span>
+              School Ranking — All Zones
+              <span id="zone-rank-badge" style="margin-left:auto;font-size:0.78rem;font-weight:700;
+                background:rgba(245,158,11,.18);color:#f59e0b;padding:2px 10px;border-radius:12px;display:none"></span>
+            </div>
+            <div style="position:relative;height:360px;overflow-y:auto">
+              <canvas id="zone-rank-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- Submission Time Analysis -->
+          <div class="chart-panel">
+            <div class="chart-panel-title">
+              <span class="dot" style="background:#14b8a6"></span>
+              Submission &amp; Time Analysis
+            </div>
+            <div style="position:relative;height:360px">
+              <canvas id="proficiency-chart"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+      </div><!-- /zone-panels -->
+
+
+    </main>
+  </div>
+
+  <script src="/js/theme.js"></script>
+  <script src="/js/auth-client.js"></script>
+  <script>
+    // ── Chart.js helpers ───────────────────────────────────────────────
+    const COLORS = ['#6366f1','#10b981','#f59e0b','#3b82f6','#ec4899','#14b8a6','#a855f7','#ef4444'];
+    function hex2rgba(hex, a) {
+      const r = parseInt(hex.slice(1,3),16);
+      const g = parseInt(hex.slice(3,5),16);
+      const b = parseInt(hex.slice(5,7),16);
+      return `rgba(${r},${g},${b},${a})`;
+    }
+
+    const charts = {};
+    function destroyChart(id) {
+      if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+    }
+
+    // ── Fetch helper ───────────────────────────────────────────────────
+    async function zdFetch(path, zone) {
+      const qs = zone ? `?zone=${encodeURIComponent(zone)}` : '';
+      const r  = await fetch(`/api/zone-dashboard/${path}${qs}`);
+      if (!r.ok) throw new Error(await r.text());
+      return r.json();
+    }
+
+    // ── Filter elements ────────────────────────────────────────────────
+    const zoneSelect   = document.getElementById('zone-select');
+    const levelFilter  = document.getElementById('filter-level');
+    const gradeFilter  = document.getElementById('filter-grade');
+    const statusFilter = document.getElementById('filter-status');
+    const clearBtn     = document.getElementById('btn-clear-filters');
+    let currentZone    = null;
+    let refreshTimer   = null;
+    let countdown      = 30;
+
+    function getFilters() {
+      return {
+        // level:  levelFilter.value  || null,
+        grade:  gradeFilter.value  || null,
+        status: statusFilter.value || null,
+      };
+    }
+
+    function updateFilterBadge() {
+      const f = getFilters();
+      const active = [f.level, f.grade, f.status].filter(Boolean);
+      const badge = document.getElementById('filter-active-badge');
+      const strip = document.getElementById('filter-status-text');
+      badge.textContent  = active.length > 0 ? `${active.length} active` : '';
+      badge.style.display = active.length > 0 ? 'inline-flex' : 'none';
+      const parts = [];
+      if (f.level)  parts.push(`Level ${f.level}`);
+      if (f.grade)  parts.push(f.grade);
+      if (f.status) parts.push(f.status === 'active' ? '🟢 Active students' : '🔴 Inactive students');
+      strip.innerHTML = parts.length
+        ? `Showing: <span>${parts.join(' · ')}</span>`
+        : 'Showing all data';
+    }
+
+    // Reload on any filter change
+    // levelFilter.addEventListener('change',  () => { updateFilterBadge(); loadZone(); });
+    gradeFilter.addEventListener('change',  () => { updateFilterBadge(); loadZone(); });
+    statusFilter.addEventListener('change', () => { updateFilterBadge(); loadZone(); });
+    clearBtn.addEventListener('click', () => {
+      levelFilter.value  = '';
+      gradeFilter.value  = '';
+      statusFilter.value = '';
+      updateFilterBadge();
+      loadZone();
+    });
+
+    async function populateZoneList() {
+      try {
+        const zones = await zdFetch('zones', null);
+        zones.forEach(z => {
+          const opt = document.createElement('option');
+          opt.value = z.name;
+          opt.textContent = z.name;
+          zoneSelect.appendChild(opt);
+        });
+        const params = new URLSearchParams(location.search);
+        const pre = params.get('zone');
+        if (pre) { zoneSelect.value = pre; loadZone(); }
+      } catch(e) { console.error(e); }
+    }
+
+    zoneSelect.addEventListener('change', loadZone);
+
+    // ── Main load ──────────────────────────────────────────────────────
+    async function loadZone() {
+      const zone = zoneSelect.value;
+      if (!zone) return;
+
+      currentZone = zone;
+      history.replaceState(null, '', `?zone=${encodeURIComponent(zone)}`);
+
+      document.getElementById('placeholder').style.display = 'none';
+      document.getElementById('zone-panels').style.display  = 'block';
+
+      const badge  = document.getElementById('zone-name-badge');
+      badge.textContent  = zone;
+      badge.style.display = '';
+      document.getElementById('kpi-zone-name').textContent = zone;
+
+      // Populate grade dropdown if first load for this zone
+      await populateGradeFilter(zone);
+
+      // Load all panels
+      const f = getFilters();
+      await Promise.all([
+        loadSummary(zone, f),
+        loadScoreBands(zone, f),
+        loadScoreDist(zone, f),
+        loadPointsLostOverview(zone, f),
+        loadScoreMilestones(zone, f),
+        loadTopStudentHighlights(zone, f),
+        loadLeaderboard(zone, f),
+        loadGradeStats(zone, f),
+        loadInactiveStudents(zone, f),
+        loadZoneRank(zone),
+        loadLevelProficiency(zone, f),
+      ]);
+    };
+
+    // ── Grade dropdown population ──────────────────────────────────────
+    let lastGradeZone = null;
+    async function populateGradeFilter(zone) {
+      if (zone === lastGradeZone) return;          // only if zone changed
+      lastGradeZone = zone;
+      try {
+        const rows = await zdFetch('gradewise-stats', zone);
+        const prev = gradeFilter.value;
+        gradeFilter.innerHTML = '<option value="">All Grades</option>';
+        rows.forEach(r => {
+          if (!r.grade || r.grade === 'Unknown') return;
+          const opt = document.createElement('option');
+          opt.value = r.grade;
+          opt.textContent = r.grade;
+          if (r.grade === prev) opt.selected = true;
+          gradeFilter.appendChild(opt);
+        });
+      } catch(e) { console.error('[grade-filter]', e); }
+    }
+
+    // ── Fetch helper that merges filter params ─────────────────────────
+    async function zdFetchF(path, zone, filters = {}) {
+      const params = { zone };
+      if (filters.level)  params.level  = filters.level;
+      if (filters.grade)  params.grade  = filters.grade;
+      if (filters.status) params.status = filters.status;
+      const qs = new URLSearchParams(params).toString();
+      const r  = await fetch(`/api/zone-dashboard/${path}?${qs}`);
+      if (!r.ok) throw new Error(await r.text());
+      return r.json();
+    }
+
+    // ── KPI Cards ──────────────────────────────────────────────────────
+    async function loadSummary(zone, f = {}) {
+      try {
+        const s = await zdFetchF('summary', zone, f);
+        const totalStu = parseInt(s.total_students || 0);
+        const activeStu = parseInt(s.active_students || 0);
+        const activeRate = totalStu > 0 ? ((activeStu / totalStu) * 100).toFixed(1) : 0;
+
+        document.getElementById('kpi-grid').innerHTML = `
+          <div class="kpi-card kpi-accent-blue">
+            <div class="kpi-label">Total Students</div>
+            <div class="kpi-value">${totalStu.toLocaleString()}</div>
+            <div class="kpi-sub">Registered in zone</div>
+          </div>
+          <div class="kpi-card kpi-accent-green">
+            <div class="kpi-label">Total Submissions</div>
+            <div class="kpi-value">${parseInt(s.total_submissions || 0).toLocaleString()}</div>
+            <div class="kpi-sub">All levels combined</div>
+          </div>
+          <div class="kpi-card kpi-accent-purple">
+            <div class="kpi-label">Total Score</div>
+            <div class="kpi-value">${parseInt(s.total_score || 0).toLocaleString()}</div>
+            <div class="kpi-sub">Cumulative score</div>
+          </div>
+          <div class="kpi-card kpi-accent-amber">
+            <div class="kpi-label">Score per Student</div>
+            <div class="kpi-value">${totalStu > 0 ? Math.round((parseInt(s.total_score || 0) / totalStu)).toLocaleString() : '0'}</div>
+            <div class="kpi-sub">Average total per student</div>
+          </div>
+          <div class="kpi-card kpi-accent-teal">
+            <div class="kpi-label">Active Students</div>
+            <div class="kpi-value">${activeStu.toLocaleString()}</div>
+            <div class="kpi-sub">Have ≥1 submission</div>
+          </div>
+          <div class="kpi-card kpi-accent-indigo">
+            <div class="kpi-label">Participation Rate</div>
+            <div class="kpi-value">${activeRate}%</div>
+            <div class="kpi-sub">Active / Total</div>
+          </div>
+        `;
+      } catch(e) { console.error('[summary]', e); }
+    }
+
+    // ── Score Bands by Grade ───────────────────────────────────────────
+    async function loadScoreBands(zone, f = {}) {
+      try {
+        const rows = await zdFetchF('score-bands', zone, f);
+        destroyChart('level');
+
+        const labels = rows.map(r => r.grade);
+        const zeroBand = rows.map(r => parseInt(r.zero_band) || 0);
+        const emergingBand = rows.map(r => parseInt(r.emerging_band) || 0);
+        const progressingBand = rows.map(r => parseInt(r.progressing_band) || 0);
+        const advancedBand = rows.map(r => parseInt(r.advanced_band) || 0);
+
+        const ctx = document.getElementById('level-chart');
+        charts['level'] = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: 'No submissions',
+                data: zeroBand,
+                backgroundColor: hex2rgba('#64748b', 0.78),
+                borderColor: '#64748b',
+                borderWidth: 1.2,
+              },
+              {
+                label: 'Emerging',
+                data: emergingBand,
+                backgroundColor: hex2rgba('#f59e0b', 0.78),
+                borderColor: '#f59e0b',
+                borderWidth: 1.2,
+              },
+              {
+                label: 'Progressing',
+                data: progressingBand,
+                backgroundColor: hex2rgba('#3b82f6', 0.78),
+                borderColor: '#3b82f6',
+                borderWidth: 1.2,
+              },
+              {
+                label: 'Advanced',
+                data: advancedBand,
+                backgroundColor: hex2rgba('#10b981', 0.78),
+                borderColor: '#10b981',
+                borderWidth: 1.2,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { labels: { usePointStyle: true, font: { size: 11 } } },
+              tooltip: {
+                callbacks: {
+                  footer: (items) => {
+                    const i = items[0]?.dataIndex ?? 0;
+                    const total = zeroBand[i] + emergingBand[i] + progressingBand[i] + advancedBand[i];
+                    return `Total students: ${total}`;
+                  }
+                },
+              },
+            },
+            scales: {
+              x: { stacked: true, grid: { display: false }, ticks: { color: '#8fa3bf' } },
+              y: { beginAtZero: true, stacked: true, title: { display: true, text: 'Student Count', color: '#4d6580', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+            },
+          },
+        });
+      } catch(e) { console.error('[score-bands]', e); }
+    }
+
+    async function loadTopStudentHighlights(zone, f = {}) {
+      try {
+        const rows = await zdFetchF('top-students', zone, f);
+        const topThree = rows.filter(student => parseInt(student.total_score || 0) > 0).slice(0, 3);
+        const podium = document.getElementById('top-students-podium');
+        document.getElementById('top-students-hero-note').textContent =
+          topThree.length
+            ? `${zone} is currently led by these top total-score performers.`
+            : 'No positive-score student performance data is available for the selected filters.';
+
+        const medals = ['🥇', '🥈', '🥉'];
+        const rankLabels = ['1st Place', '2nd Place', '3rd Place'];
+        podium.innerHTML = topThree.map((student, index) => `
+          <div class="top-student-card rank-${index + 1}-card">
+            <div class="top-student-medal">${medals[index]}</div>
+            <div class="top-student-rank">${rankLabels[index]}</div>
+            <div class="top-student-name">${student.student_name || '—'}</div>
+            <div class="top-student-meta">Grade ${student.grade || '—'} · ${parseInt(student.submissions || 0)} submissions</div>
+            <div class="top-student-score">${parseInt(student.total_score || 0).toLocaleString()}</div>
+            <div class="top-student-score-label">Total score</div>
+          </div>
+        `).join('');
+
+        if (!topThree.length) {
+          podium.innerHTML = `
+            <div class="top-student-card" style="grid-column:1/-1;min-height:120px;justify-content:center">
+              <div class="top-student-name">No top students available</div>
+              <div class="top-student-meta">Only students with total score above 0 are highlighted here.</div>
+            </div>
+          `;
+        }
+      } catch (e) { console.error('[top-students-hero]', e); }
+    }
+
+    // ── Score Distribution Doughnut ────────────────────────────────────
+    async function loadScoreDist(zone, f = {}) {
+      try {
+        const rows = await zdFetchF('score-distribution', zone, f);
+        destroyChart('scoreDist');
+
+        const labels = rows.map(r => r.score_range);
+        const data   = rows.map(r => parseInt(r.student_count));
+        const total  = data.reduce((a, b) => a + b, 0);
+
+        const ctx = document.getElementById('score-dist-chart');
+        charts['scoreDist'] = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels,
+            datasets: [{
+              data,
+              backgroundColor: COLORS.slice(0, labels.length).map(c => hex2rgba(c, 0.82)),
+              borderColor: COLORS.slice(0, labels.length),
+              borderWidth: 2,
+              hoverOffset: 10,
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '60%',
+            plugins: {
+              legend: {
+                position: 'right',
+                labels: { usePointStyle: true, font: { size: 10 }, padding: 10 },
+              },
+              tooltip: {
+                callbacks: {
+                  title: i => `Score: ${i[0].label}`,
+                  label: i => {
+                    const pct = total > 0 ? ((i.parsed / total) * 100).toFixed(1) : 0;
+                    return [`  🎓 Students: ${i.parsed}`, `  📊 Share: ${pct}%`];
+                  },
+                },
+              },
+            },
+          },
+          plugins: [{
+            id: 'center',
+            afterDraw(chart) {
+              const { width, height, ctx: c } = chart;
+              c.save();
+              c.font = `bold ${Math.round(height/5.5)}px Inter,sans-serif`;
+              c.fillStyle = '#e8edf5';
+              c.textAlign = 'center';
+              c.textBaseline = 'middle';
+              c.fillText(total, width/2, height/2 - 5);
+              c.font = `${Math.round(height/11)}px Inter,sans-serif`;
+              c.fillStyle = '#4d6580';
+              c.fillText('students', width/2, height/2 + height*0.12);
+              c.restore();
+            },
+          }],
+        });
+      } catch(e) { console.error('[score-dist]', e); }
+    }
+
+    // ── Points Lost Overview ───────────────────────────────────────────
+    async function loadPointsLostOverview(zone, f = {}) {
+      try {
+        const rows = await zdFetchF('deduction-overview', zone, f);
+        destroyChart('timeline');
+
+        const labels = rows.map(r => r.grade);
+        const wrongLoss = rows.map(r => parseFloat(r.wrong_loss) || 0);
+        const paceLoss = rows.map(r => parseFloat(r.pace_loss) || 0);
+        const submissions = rows.map(r => parseInt(r.submissions) || 0);
+
+        const ctx = document.getElementById('timeline-chart');
+        charts['timeline'] = new Chart(ctx, {
+          data: {
+            labels,
+            datasets: [
+              {
+                type: 'bar',
+                label: 'Wrong Attempt Loss',
+                data: wrongLoss,
+                backgroundColor: hex2rgba('#f59e0b', 0.72),
+                borderColor: '#f59e0b',
+                borderWidth: 1.5,
+                borderRadius: 5,
+                yAxisID: 'yLoss',
+              },
+              {
+                type: 'bar',
+                label: 'Pace Loss',
+                data: paceLoss,
+                backgroundColor: hex2rgba('#6366f1', 0.72),
+                borderColor: '#6366f1',
+                borderWidth: 1.5,
+                borderRadius: 5,
+                yAxisID: 'yLoss',
+              },
+              {
+                type: 'line',
+                label: 'Submissions',
+                data: submissions,
+                borderColor: '#10b981',
+                backgroundColor: hex2rgba('#10b981', 0.14),
+                fill: false,
+                tension: 0.3,
+                pointRadius: 4,
+                borderWidth: 2,
+                yAxisID: 'ySubs',
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { labels: { usePointStyle: true, font: { size: 11 } } },
+              tooltip: {
+                callbacks: {
+                  afterBody: (items) => {
+                    const row = rows[items[0].dataIndex] || {};
+                    return [
+                      `Wrong Attempt Loss: ${parseFloat(row.wrong_loss || 0).toFixed(1)} pts`,
+                      `Pace Loss: ${parseFloat(row.pace_loss || 0).toFixed(1)} pts`,
+                      `Submissions: ${parseInt(row.submissions || 0)}`
+                    ];
+                  },
+                },
+              },
+            },
+            scales: {
+              x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8fa3bf', maxRotation: 45, font: { size: 10 } } },
+              yLoss: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' }, title: { display: true, text: 'Points Lost', color: '#f59e0b', font: { size: 10 } } },
+              ySubs: { position: 'right', beginAtZero: true, grid: { display: false }, title: { display: true, text: 'Submissions', color: '#10b981', font: { size: 10 } } },
+            },
+          },
+        });
+      } catch(e) { console.error('[points-lost-overview]', e); }
+    }
+
+    // ── Score Milestones by Grade ──────────────────────────────────────
+    async function loadScoreMilestones(zone, f = {}) {
+      try {
+        const rows = await zdFetchF('score-milestones', zone, f);
+        destroyChart('scoreMilestones');
+
+        const labels = rows.map(r => r.grade || 'Unknown');
+        const submissions = rows.map(r => parseInt(r.submissions) || 0);
+        const score90Plus = rows.map(r => parseInt(r.score_90_plus) || 0);
+        const perfectScores = rows.map(r => parseInt(r.perfect_scores) || 0);
+
+        const ctx = document.getElementById('score-milestones-chart');
+        charts['scoreMilestones'] = new Chart(ctx, {
+          data: {
+            labels,
+            datasets: [
+              {
+                type: 'bar',
+                label: 'Submissions',
+                data: submissions,
+                backgroundColor: hex2rgba('#10b981', 0.72),
+                borderColor: '#10b981',
+                borderWidth: 1.5,
+                borderRadius: 5,
+                yAxisID: 'yCount',
+              },
+              {
+                type: 'bar',
+                label: '90+ Scores',
+                data: score90Plus,
+                backgroundColor: hex2rgba('#6366f1', 0.72),
+                borderColor: '#6366f1',
+                borderWidth: 1.5,
+                borderRadius: 5,
+                yAxisID: 'yCount',
+              },
+              {
+                type: 'bar',
+                label: 'Perfect Scores',
+                data: perfectScores,
+                backgroundColor: hex2rgba('#f59e0b', 0.72),
+                borderColor: '#f59e0b',
+                borderWidth: 1.5,
+                borderRadius: 5,
+                yAxisID: 'yCount',
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { labels: { usePointStyle: true, font: { size: 11 } } },
+              tooltip: {
+                callbacks: {
+                  afterBody: (items) => {
+                    const row = rows[items[0].dataIndex] || {};
+                    return [
+                      `Submissions: ${parseInt(row.submissions || 0)}`,
+                      `90+ Scores: ${parseInt(row.score_90_plus || 0)}`,
+                      `Perfect Scores: ${parseInt(row.perfect_scores || 0)}`
+                    ];
+                  },
+                },
+              },
+            },
+            scales: {
+              x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8fa3bf', maxRotation: 45, font: { size: 10 } } },
+              yCount: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' }, title: { display: true, text: 'Score Milestones', color: '#10b981', font: { size: 10 } } },
+            },
+          },
+        });
+      } catch(e) { console.error('[score-milestones-panel]', e); }
+    }
+
+    // ── Leaderboard ────────────────────────────────────────────────────
+    async function loadLeaderboard(zone, f = {}) {
+      try {
+        const rows = await zdFetchF('top-students', zone, f);
+        document.getElementById('leaderboard-count').textContent = `Top ${rows.length}`;
+
+        const maxScore = Math.max(...rows.map(r => parseInt(r.total_score) || 0), 1);
+
+        const tbody = document.getElementById('leaderboard-tbody');
+        tbody.innerHTML = rows.map((r, i) => {
+          const rank   = i + 1;
+          const badge  = rank <= 3 ? `rank-${rank}` : 'rank-n';
+          const trophy = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+          const score  = parseInt(r.total_score) || 0;
+          const barW   = Math.max(4, Math.round((score / maxScore) * 100));
+          return `
+            <tr>
+              <td><span class="rank-badge ${badge}">${trophy}</span></td>
+              <td style="font-weight:500;color:var(--text-primary)">${r.student_name || '—'}</td>
+              <td style="text-align:right;color:var(--text-muted)">${r.grade || '—'}</td>
+              <td style="text-align:right">${parseInt(r.submissions) || 0}</td>
+              <td>
+                <div class="score-bar-wrap">
+                  <div class="score-bar" style="width:${barW}%"></div>
+                  <span>${score.toLocaleString()}</span>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch(e) { console.error('[leaderboard]', e); }
+    }
+
+    // ── Grade-wise Stats Bar Chart ─────────────────────────────────────
+    async function loadGradeStats(zone, f = {}) {
+      try {
+        const rows = await zdFetchF('gradewise-stats', zone, f);
+        destroyChart('grade');
+
+        const labels = rows.map(r => r.grade);
+        const totalScores = rows.map(r => parseInt(r.total_score) || 0);
+        const students  = rows.map(r => parseInt(r.students) || 0);
+
+        const ctx = document.getElementById('grade-chart');
+        charts['grade'] = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: 'Total Score',
+                data: totalScores,
+                backgroundColor: COLORS.map(c => hex2rgba(c, 0.72)),
+                borderColor: COLORS,
+                borderWidth: 1.5,
+                borderRadius: 5,
+              },
+            ],
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  afterLabel: (item) => {
+                    const r = rows[item.dataIndex];
+                    return [`  🎓 Students: ${r.students}`, `  📝 Submissions: ${r.submissions}`];
+                  },
+                },
+              },
+            },
+            scales: {
+              x: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' }, title: { display: true, text: 'Total Score', color: '#4d6580', font: { size: 10 } } },
+              y: { grid: { display: false }, ticks: { color: '#8fa3bf', font: { size: 10 } } },
+            },
+          },
+        });
+      } catch(e) { console.error('[grade-stats]', e); }
+    }
+
+    // ── Panel 7: Inactive Students ─────────────────────────────────────
+    let _inactiveRows = [];   // cache for live search
+
+    async function loadInactiveStudents(zone, f = {}) {
+      try {
+        const rows = await zdFetchF('inactive-students', zone, f);
+        _inactiveRows = rows;
+        document.getElementById('inactive-search').value = '';
+        renderInactiveTable(rows);
+        document.getElementById('inactive-count').textContent =
+          `${rows.length} inactive`;
+      } catch(e) { console.error('[inactive-students]', e); }
+    }
+
+    function renderInactiveTable(rows) {
+      document.getElementById('inactive-tbody').innerHTML = rows.map((r, i) => {
+        const joined = r.joined_at
+          ? new Date(r.joined_at).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })
+          : '—';
+        return `
+          <tr>
+            <td style="color:var(--text-muted)">${i + 1}</td>
+            <td style="font-weight:500;color:var(--text-primary)">${r.student_name || '—'}</td>
+            <td style="color:var(--text-muted);font-size:0.75rem">${r.username || '—'}</td>
+            <td style="text-align:center">
+              <span style="padding:2px 8px;border-radius:10px;background:rgba(139,92,246,.15);
+                           color:#a855f7;font-size:0.72rem;font-weight:600">${r.grade}</span>
+            </td>
+            <td style="text-align:right;font-size:0.75rem;color:var(--text-muted)">${joined}</td>
+            <td style="text-align:center">
+              <span style="padding:2px 8px;border-radius:10px;background:rgba(239,68,68,.15);
+                           color:#ef4444;font-size:0.7rem;font-weight:600;">● Never</span>
+            </td>
+          </tr>`;
+      }).join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted)">🎉 All students are active!</td></tr>';
+    }
+
+    window.filterInactiveTable = function(q) {
+      const term = q.toLowerCase();
+      const filtered = _inactiveRows.filter(r =>
+        (r.student_name || '').toLowerCase().includes(term) ||
+        (r.grade || '').toLowerCase().includes(term) ||
+        (r.username || '').toLowerCase().includes(term)
+      );
+      renderInactiveTable(filtered);
+    };
+
+    // ── Panel 8: School Rank ─────────────────────────────────────────────
+    async function loadZoneRank(zone) {
+      try {
+        const rows = await zdFetchF('zone-rank', zone, {});
+        destroyChart('zoneRank');
+
+        const myZone   = rows.find(r => r.zone === zone);
+        const myRank   = myZone ? myZone.rank : '—';
+        const total    = rows.length;
+
+        // Update rank badge
+        const badge = document.getElementById('zone-rank-badge');
+        badge.textContent = `Rank #${myRank}`;
+        badge.style.display = '';
+
+        // Chart — show top 20 zones (sorted desc by total_score)
+        const visible = rows.slice(0, 20);
+        const labels  = visible.map(r => r.zone);
+        const totals  = visible.map(r => parseInt(r.total_score) || 0);
+        const bgColors = visible.map(r =>
+          r.zone === zone
+            ? 'rgba(245,158,11,0.85)'          // gold for current zone
+            : 'rgba(99,102,241,0.55)'
+        );
+        const borderColors = visible.map(r =>
+          r.zone === zone ? '#f59e0b' : '#6366f1'
+        );
+
+        // Dynamic height based on number of zones
+        const chartHeight = Math.max(300, visible.length * 28);
+        document.getElementById('zone-rank-chart').parentElement.style.height = chartHeight + 'px';
+
+        const ctx = document.getElementById('zone-rank-chart');
+        charts['zoneRank'] = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Total Score',
+              data: totals,
+              backgroundColor: bgColors,
+              borderColor: borderColors,
+              borderWidth: 1.5,
+              borderRadius: 4,
+            }],
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  title: i => i[0].label,
+                  label: i => {
+                    const r = rows.find(x => x.zone === i.label) || {};
+                    return [
+                      `  📊 Total Score: ${i.parsed.x.toLocaleString()}`,
+                      `  🏆 Rank: #${r.rank || '?'}`,
+                      `  📝 Submissions: ${parseInt(r.total_submissions||0).toLocaleString()}`,
+                    ];
+                  },
+                },
+              },
+            },
+            scales: {
+              x: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.04)' }, title: { display: true, text: 'Total Score', color: '#4d6580', font: { size: 10 } } },
+              y: { grid: { display: false }, ticks: { color: '#8fa3bf', font: { size: 10 } } },
+            },
+          },
+        });
+      } catch(e) { console.error('[zone-rank]', e); }
+    }
+
+    // ── Panel 9: Submission & Time Analysis ───────────────────────────
+    async function loadLevelProficiency(zone, f = {}) {
+      try {
+        const rows = await zdFetchF('level-proficiency', zone, f);
+        destroyChart('proficiency');
+
+        const labels = rows.map(r => r.grade || 'Unknown');
+        const totalScore = rows.map(r => parseInt(r.total_score) || 0);
+        const submissions = rows.map(r => parseInt(r.total_submissions) || 0);
+        const totalTime = rows.map(r => parseFloat(r.total_time_min) || 0);
+
+        const ctx = document.getElementById('proficiency-chart');
+        charts['proficiency'] = new Chart(ctx, {
+          data: {
+            labels,
+            datasets: [
+              {
+                type: 'bar',
+                label: 'Total Score',
+                data: totalScore,
+                backgroundColor: 'rgba(99,102,241,0.72)',
+                borderColor: '#6366f1',
+                borderWidth: 1.5,
+                borderRadius: 5,
+                yAxisID: 'yScore',
+              },
+              {
+                type: 'bar',
+                label: 'Submissions',
+                data: submissions,
+                backgroundColor: 'rgba(20,184,166,0.72)',
+                borderColor: '#14b8a6',
+                borderWidth: 1.5,
+                borderRadius: 5,
+                yAxisID: 'ySubs',
+              },
+              {
+                type: 'line',
+                label: 'Activity Minutes',
+                data: totalTime,
+                borderColor: '#f59e0b',
+                backgroundColor: 'rgba(245,158,11,0.1)',
+                fill: false,
+                tension: 0.35,
+                pointRadius: 4,
+                borderWidth: 2,
+                yAxisID: 'yTime',
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { labels: { usePointStyle: true, font: { size: 11 } } },
+              tooltip: {
+                callbacks: {
+                  afterLabel: (item) => {
+                    const r = rows[item.dataIndex];
+                    return [
+                      `  📊 Total Score: ${parseInt(r.total_score || 0).toLocaleString()}`,
+                      `  📝 Submissions: ${parseInt(r.total_submissions || 0)}`,
+                      `  📍 Activity Minutes: ${parseFloat(r.total_time_min || 0).toFixed(1)}`,
+                      `  🔄 Attempts: ${parseFloat(r.avg_attempts || 1).toFixed(2)}`,
+                    ];
+                  },
+                },
+              },
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: '#8fa3bf' } },
+              yScore: { beginAtZero: true, title: { display: true, text: 'Total Score', color: '#6366f1', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+              ySubs: { beginAtZero: true, title: { display: true, text: 'Submissions', color: '#14b8a6', font: { size: 10 } }, grid: { display: false } },
+              yTime: { position: 'right', beginAtZero: true, title: { display: true, text: 'Activity Minutes', color: '#f59e0b', font: { size: 10 } }, grid: { display: false } },
+            },
+          },
+        });
+      } catch(e) { console.error('[level-proficiency]', e); }
+    }
+
+    // ── Init ───────────────────────────────────────────────────────────
+    window.loadZone = loadZone;   // expose for onclick attribute
+    updateFilterBadge();
+    populateZoneList();
+    if (window.lucide) lucide.createIcons();  // render icons immediately
+  </script>
+  <script>document.addEventListener('DOMContentLoaded', () => { if(window.lucide) lucide.createIcons(); });</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "watch": [
+    "server.js",
+    "config.js",
+    "db.js",
+    "db-supervisor.js",
+    "routes/",
+    "auth/"
+  ],
+  "ext": "js,json",
+  "ignore": [
+    "public/",
+    "node_modules/",
+    "*.log",
+    "*.dump",
+    "analysis/",
+    ".env"
+  ],
+  "delay": 1500
+}

@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Event Insights — Codevyuh Platform</title>
+  <meta name="description" content="Codevyuh Event Insights Dashboard — In-depth participant analysis, grade distribution, registration velocity, and cohort benchmarks for school competitions." />
+  <script>
+    (() => {
+      const stored = localStorage.getItem('dashboard-theme');
+      const theme = stored === 'light' || stored === 'dark'
+        ? stored
+        : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/topbar.css" />
+  <link rel="stylesheet" href="/css/filters.css" />
+  <link rel="stylesheet" href="/css/panels.css" />
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    /* ── Event Hero Strip ─────────────────────────────── */
+    .event-hero {
+      margin-bottom: var(--space-md);
+      padding: 20px 24px;
+      border-radius: 18px;
+      border: 1px solid var(--hero-panel-border, rgba(56, 189, 248, 0.2));
+      background: var(--hero-panel-bg, linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9)));
+      box-shadow: var(--hero-panel-shadow, 0 10px 30px rgba(0, 0, 0, 0.25));
+    }
+    .event-hero-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    .event-hero-label {
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--hero-label-color, #38bdf8);
+      font-weight: 700;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .event-hero-title {
+      font-size: 1.6rem;
+      line-height: 1.2;
+      letter-spacing: -0.03em;
+      font-weight: 800;
+      color: var(--hero-title-color, #f8fafc);
+    }
+    .event-hero-desc {
+      margin-top: 8px;
+      font-size: 0.88rem;
+      color: var(--hero-note-color, #94a3b8);
+      line-height: 1.5;
+      max-width: 820px;
+    }
+    .event-meta-badges {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+    .meta-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+    .meta-badge:hover {
+      background: rgba(56, 189, 248, 0.12);
+      border-color: rgba(56, 189, 248, 0.3);
+      color: #38bdf8;
+    }
+    .meta-badge.active-status {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #10b981;
+    }
+
+    /* ── Database Error Banner ────────────────────────── */
+    .db-error-banner {
+      padding: 16px 20px;
+      border-radius: 12px;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      background: linear-gradient(135deg, rgba(38, 14, 14, 0.95) 0%, rgba(26, 10, 10, 0.98) 100%);
+      box-shadow: 0 8px 20px rgba(239, 68, 68, 0.15);
+      margin-bottom: var(--space-md);
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    [data-theme="light"] .db-error-banner {
+      background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+      border-color: rgba(239, 68, 68, 0.4);
+      box-shadow: 0 6px 16px rgba(239, 68, 68, 0.1);
+    }
+    .db-error-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #f87171;
+    }
+    .db-error-icon {
+      flex-shrink: 0;
+      color: #ef4444;
+    }
+    .db-error-text {
+      font-size: 0.86rem;
+      color: var(--text-primary);
+    }
+    .db-error-text strong {
+      color: #ef4444;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .btn-db-retry {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(239, 68, 68, 0.5);
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-db-retry:hover {
+      background: #ef4444;
+      color: #ffffff;
+      border-color: #ef4444;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+
+    /* ── Performance Informational Card ───────────────── */
+    .performance-notice-card {
+      padding: 22px 24px;
+      border-radius: 16px;
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      background: linear-gradient(135deg, rgba(14, 27, 49, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
+      margin-bottom: var(--space-md);
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    [data-theme="light"] .performance-notice-card {
+      background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%);
+      border-color: rgba(56, 189, 248, 0.35);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
+    }
+    .notice-icon-box {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #38bdf8;
+      flex-shrink: 0;
+    }
+    .notice-content {
+      flex: 1;
+      min-width: 280px;
+    }
+    .notice-heading {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .notice-subtext {
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: var(--text-secondary);
+    }
+    .notice-metrics-strip {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .notice-pill {
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* ── Participant Search & Table Toolbar ───────────── */
+    .table-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .search-input-wrap {
+      position: relative;
+      min-width: 260px;
+      max-width: 380px;
+      flex: 1;
+    }
+    .search-input-wrap input {
+      width: 100%;
+      padding: 8px 12px 8px 34px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      font-size: 0.82rem;
+      outline: none;
+      transition: border-color 0.18s;
+    }
+    .search-input-wrap input:focus {
+      border-color: #38bdf8;
+    }
+    .search-icon-inside {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+      width: 14px;
+      height: 14px;
+    }
+    .table-pagination {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+    .btn-pagination {
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-pagination:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .btn-pagination:not(:disabled):hover {
+      background: rgba(56, 189, 248, 0.1);
+      border-color: #38bdf8;
+      color: #38bdf8;
+    }
+
+    /* ── Metric Help Tooltips ─────────────────────────── */
+    .metric-help {
+      position: relative;
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      color: var(--text-muted);
+      cursor: help;
+      flex-shrink: 0;
+    }
+    .metric-help::after {
+      content: attr(data-help);
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      width: 220px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #0f1e38;
+      border: 1px solid rgba(56,189,248,0.25);
+      color: #dbe7f5;
+      font-size: 0.72rem;
+      line-height: 1.45;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.25);
+      opacity: 0;
+      transform: translateY(-4px);
+      pointer-events: none;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      z-index: 20;
+      white-space: normal;
+    }
+    .metric-help:hover::after,
+    .metric-help:focus-visible::after {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .pulse-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      margin-right: 6px;
+      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ═══════════════════════════════════════════════════════
+       TOP BAR
+  ═══════════════════════════════════════════════════════ -->
+  <header class="topbar" role="banner">
+    <!-- Left: Logo + Title -->
+    <div class="topbar-left">
+      <div class="topbar-logo-wrap" aria-hidden="true">
+        <!-- Trophy / Contest Icon SVG -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+          <path d="M4 22h16"/>
+          <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+          <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+          <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+        </svg>
+      </div>
+
+      <div class="topbar-title-group">
+        <h1 class="topbar-title">Event Insights Dashboard</h1>
+        <span class="topbar-subtitle">Codevyuh Competition &amp; Assessment Platform</span>
+      </div>
+
+      <div class="topbar-divider" aria-hidden="true"></div>
+
+      <!-- Navigation Links -->
+      <nav class="topbar-nav" aria-label="Dashboard navigation">
+        <a href="/admin-overview" class="nav-link active" id="nav-admin">
+          <i data-lucide="trophy" class="icon-sm"></i>
+          Event Insights
+        </a>
+        <a href="/zone-dashboard" class="nav-link" id="nav-zone">
+          <i data-lucide="map-pin" class="icon-sm"></i>
+          School Dashboard
+        </a>
+        <a href="/parent-view" class="nav-link" id="nav-parent">
+          <i data-lucide="users" class="icon-sm"></i>
+          Parent View
+        </a>
+      </nav>
+    </div>
+
+    <!-- Right: Theme Switcher & Tarcin Logo -->
+    <div class="topbar-right">
+      <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch theme">
+        <svg data-theme-icon viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
+        <span data-theme-label>Dark Mode</span>
+      </button>
+      <div class="powered-by" aria-label="Powered by Tarcin Robotics">
+        <span class="powered-by-text">Powered by</span>
+        <img src="/tarcin-logo.webp" alt="Tarcin Robotics" class="powered-by-logo" />
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════
+       FILTER BAR: EVENT SELECTOR
+  ═══════════════════════════════════════════════════════ -->
+  <div class="filterbar" role="search" aria-label="Event selector">
+    <span class="filterbar-label"><i data-lucide="filter" class="icon-sm"></i> Event</span>
+    <div class="filterbar-sep" aria-hidden="true"></div>
+
+    <div class="filters-group" style="display:flex;align-items:center;gap:var(--space-md);flex-wrap:wrap">
+      <!-- Event Dropdown -->
+      <div class="filter-item">
+        <label class="filter-item-label" for="filter-event">
+          <i data-lucide="calendar" class="icon-sm"></i> Active Event
+        </label>
+        <select id="filter-event" class="filter-select" aria-label="Filter by Event">
+          <option value="">Loading target events…</option>
+        </select>
+      </div>
+
+      <!-- Quick Badges -->
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="meta-badge" id="event-quick-type"><i data-lucide="tag" class="icon-sm"></i> GENERAL</span>
+        <span class="meta-badge active-status" id="event-quick-status">
+          <span class="pulse-dot"></span> OPEN
+        </span>
+      </div>
+
+      <!-- Refresh Button -->
+      <button id="btn-refresh-event" class="btn-clear-filters" type="button" aria-label="Refresh event data" style="margin-left:auto">
+        <i data-lucide="refresh-cw" class="icon-sm"></i>
+        Refresh
+      </button>
+    </div>
+
+    <div class="filterbar-right">
+      <span id="filter-status-text" class="filter-status-text" aria-live="polite">Live database metrics</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MAIN CONTENT
+  ═══════════════════════════════════════════════════════ -->
+  <div class="page-wrapper">
+    <main class="main-content" id="main-content" role="main">
+
+      <!-- ── EVENT HERO BANNER ─────────────────────────────── -->
+      <section class="event-hero" aria-labelledby="event-hero-title">
+        <div class="event-hero-header">
+          <div>
+            <div class="event-hero-label" id="event-hero-label">
+              <i data-lucide="building-2" style="width:14px;height:14px"></i>
+              <span id="event-institution-name">Loading Institution…</span>
+            </div>
+            <h2 class="event-hero-title" id="event-hero-title">Select an Event</h2>
+            <div class="event-hero-desc" id="event-hero-desc">Connecting to event analytics engine…</div>
+          </div>
+          <div class="event-meta-badges">
+            <span class="meta-badge" id="badge-event-id" title="Event UUID">
+              <i data-lucide="fingerprint" class="icon-sm"></i> ID: <span id="event-id-text">—</span>
+            </span>
+            <a id="btn-event-link" href="#" target="_blank" rel="noopener noreferrer" class="meta-badge" title="Public registration link">
+              <i data-lucide="external-link" class="icon-sm"></i> <span id="event-link-text">codevyuh.com/event/…</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────
+           SET 1 — Event-Specific KPI Cards
+      ────────────────────────────────────────────────────── -->
+      <section class="panel-row" aria-labelledby="kpi-section-title">
+        <div class="section-header">
+          <div class="section-title">
+            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            <span id="kpi-section-title">Event Key Performance Indicators</span>
+          </div>
+        </div>
+
+        <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr)">
+
+          <!-- 1: Registered Participants -->
+          <div class="stat-card" style="--card-accent:#10b981;--card-icon-bg:rgba(16,185,129,0.12)" role="article" aria-label="Registered Participants">
+            <div class="stat-card-header">
+              <span class="stat-label">Registered Participants</span>
+              <button class="metric-help" type="button" data-help="Total distinct student accounts linked to this event in UserEvent and verified in PostgreSQL." aria-label="Help">
+                <i data-lucide="info" style="width:12px;height:12px"></i>
+              </button>
+              <div class="stat-icon-wrap" aria-hidden="true">
+                <i data-lucide="users"></i>
+              </div>
+            </div>
+            <div class="stat-value skeleton value-loading" id="kpi-total-participants" aria-live="polite">&nbsp;</div>
+            <div class="stat-sub">Enrolled students</div>
+          </div>
+
+          <!-- 2: Grade / Section Coverage -->
+          <div class="stat-card" style="--card-accent:#3b82f6;--card-icon-bg:rgba(59,130,246,0.12)" role="article" aria-label="Grade / Section Coverage">
+            <div class="stat-card-header">
+              <span class="stat-label">Grade / Section Coverage</span>
+              <button class="metric-help" type="button" data-help="Academic cohorts, grades, and classroom sections participating in this event." aria-label="Help">
+                <i data-lucide="info" style="width:12px;height:12px"></i>
+              </button>
+              <div class="stat-icon-wrap" aria-hidden="true">
+                <i data-lucide="graduation-cap"></i>
+              </div>
+            </div>
+            <div class="stat-value skeleton value-loading" id="kpi-grade-coverage" style="font-size:1.35rem" aria-live="polite">&nbsp;</div>
+            <div class="stat-sub" id="kpi-grade-sub">Academic cohorts</div>
+          </div>
+
+          <!-- 3: Event Status -->
+          <div class="stat-card" style="--card-accent:#8b5cf6;--card-icon-bg:rgba(139,92,246,0.12)" role="article" aria-label="Event Status">
+            <div class="stat-card-header">
+              <span class="stat-label">Event Status</span>
+              <button class="metric-help" type="button" data-help="Active lifecycle status recorded in the PostgreSQL Event table." aria-label="Help">
+                <i data-lucide="info" style="width:12px;height:12px"></i>
+              </button>
+              <div class="stat-icon-wrap" aria-hidden="true">
+                <i data-lucide="activity"></i>
+              </div>
+            </div>
+            <div class="stat-value skeleton value-loading" id="kpi-event-status" aria-live="polite">&nbsp;</div>
+            <div class="stat-sub">Contest lifecycle</div>
+          </div>
+
+          <!-- 4: Allocated Duration -->
+          <div class="stat-card" style="--card-accent:#f59e0b;--card-icon-bg:rgba(245,158,11,0.12)" role="article" aria-label="Allocated Duration">
+            <div class="stat-card-header">
+              <span class="stat-label">Allocated Duration</span>
+              <button class="metric-help" type="button" data-help="Default access duration in minutes (defaultAccessMins) allocated per student attempt." aria-label="Help">
+                <i data-lucide="info" style="width:12px;height:12px"></i>
+              </button>
+              <div class="stat-icon-wrap" aria-hidden="true">
+                <i data-lucide="clock"></i>
+              </div>
+            </div>
+            <div class="stat-value skeleton value-loading" id="kpi-allocated-duration" aria-live="polite">&nbsp;</div>
+            <div class="stat-sub">Session window</div>
+          </div>
+
+        </div><!-- /kpi-grid -->
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────
+           SET 2 — Academic Composition & Cohorts (2 Column Grid)
+      ────────────────────────────────────────────────────── -->
+      <section class="panel-row" aria-labelledby="academic-charts-title">
+        <div class="two-col-grid" style="grid-template-columns: 1.25fr 1fr">
+
+          <!-- Chart A: Participants by Grade / Section — Bar -->
+          <div class="panel">
+            <div class="panel-title">
+              <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+                <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
+              </svg>
+              <span id="chart-a-title">Participants by Grade / Section</span>
+              <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Cohort breakdown</span>
+            </div>
+            <div class="chart-container" id="chart-grade-bar-wrap" style="min-height:330px" aria-label="Participants by Grade Bar Chart">
+              <canvas id="chart-grade-bar-canvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart B: Cohort Distribution — Doughnut -->
+          <div class="panel">
+            <div class="panel-title">
+              <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
+              </svg>
+              <span id="chart-b-title">Cohort Distribution</span>
+              <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Percentage share</span>
+            </div>
+            <div class="chart-container" id="chart-cohort-doughnut-wrap" style="min-height:330px" aria-label="Cohort Distribution Doughnut Chart">
+              <canvas id="chart-cohort-doughnut-canvas"></canvas>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────
+           SET 3 — Registration Timeline & Benchmark Comparison
+      ────────────────────────────────────────────────────── -->
+      <section class="panel-row" aria-labelledby="trend-charts-title">
+        <div class="two-col-grid" style="grid-template-columns: 1fr 1fr">
+
+          <!-- Chart C: Registration Timeline — Line -->
+          <div class="panel">
+            <div class="panel-title">
+              <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
+              <span id="chart-c-title">Registration Timeline</span>
+              <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Enrollment velocity over time</span>
+            </div>
+            <div class="chart-container" id="chart-registration-timeline-wrap" style="min-height:330px" aria-label="Registration Timeline Line Chart">
+              <canvas id="chart-registration-timeline-canvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart D: KLN vs Mock Exam comparison — Grouped Bar -->
+          <div class="panel">
+            <div class="panel-title">
+              <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+              <span id="chart-d-title">KLN vs Mock Exam Benchmark</span>
+              <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Multi-event comparison</span>
+            </div>
+            <div class="chart-container" id="chart-event-comparison-wrap" style="min-height:330px" aria-label="Event Comparison Grouped Bar Chart">
+              <canvas id="chart-event-comparison-canvas"></canvas>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────
+           SET 4 — Contest Performance & Scoring Notice
+      ────────────────────────────────────────────────────── -->
+      <section class="performance-notice-card" aria-label="Contest Performance Status">
+        <div class="notice-icon-box">
+          <i data-lucide="shield-alert" style="width:28px;height:28px"></i>
+        </div>
+        <div class="notice-content">
+          <div class="notice-heading">
+            Performance data awaiting contest submissions
+          </div>
+          <div class="notice-subtext">
+            All 662 participants across both events are registered with verified student profiles in PostgreSQL. Challenge submissions, code accuracy, and scoring leaderboards will automatically unlock once contestants submit solutions.
+          </div>
+        </div>
+        <div class="notice-metrics-strip">
+          <div class="notice-pill">
+            <i data-lucide="file-code-2" class="icon-sm"></i>
+            Submissions in DB: <strong>0</strong>
+          </div>
+          <div class="notice-pill">
+            <i data-lucide="award" class="icon-sm"></i>
+            Challenge Scores: <strong>0 pts</strong>
+          </div>
+          <div class="notice-pill" style="color:#10b981;border-color:rgba(16,185,129,0.3)">
+            <i data-lucide="check-circle" class="icon-sm"></i>
+            Mode: <strong>Exploration &amp; Practice</strong>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────
+           SET 5 — Participant Roster (Interactive Table)
+      ────────────────────────────────────────────────────── -->
+      <section class="panel-row" aria-labelledby="participants-roster-title">
+        <div class="panel">
+          <div class="panel-title">
+            <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/>
+            </svg>
+            <span id="participants-roster-title">Registered Participant Roster</span>
+            <span class="section-badge" id="roster-count-badge" aria-live="polite">0</span>
+          </div>
+
+          <!-- Toolbar: Search + Pagination -->
+          <div class="table-toolbar">
+            <div class="search-input-wrap">
+              <i data-lucide="search" class="search-icon-inside"></i>
+              <input type="text" id="roster-search-input" placeholder="Search by student name or username…" aria-label="Search participants" />
+            </div>
+
+            <div class="table-pagination">
+              <span id="pagination-info">Showing 1–50</span>
+              <button class="btn-pagination" id="btn-prev-page" type="button" disabled>Previous</button>
+              <button class="btn-pagination" id="btn-next-page" type="button">Next</button>
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="table-container">
+            <table aria-label="Registered participants table">
+              <thead>
+                <tr>
+                  <th style="width:48px" aria-label="Index">#</th>
+                  <th>Student Name</th>
+                  <th>Username</th>
+                  <th>Grade / Section</th>
+                  <th>Registered At</th>
+                  <th>School / Organization</th>
+                </tr>
+              </thead>
+              <tbody id="participants-tbody">
+                <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">Loading participants…</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </section>
+
+    </main><!-- /main-content -->
+  </div><!-- /page-wrapper -->
+
+  <!-- ── Footer ─────────────────────────────────────────────── -->
+  <footer style="text-align:center;padding:var(--space-md);font-size:0.85rem;color:var(--text-muted);border-top:1px solid var(--border)">
+    Codevyuh Competition Analytics &nbsp;·&nbsp; Powered by <strong style="color:var(--text-secondary)">Tarcin Robotics</strong>
+  </footer>
+
+  <!-- JS (ES module) -->
+  <script src="/js/theme.js"></script>
+  <script src="/js/auth-client.js"></script>
+  <script type="module" src="/js/admin-overview.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', () => { if(window.lucide) lucide.createIcons(); });</script>
+</body>
+</html>

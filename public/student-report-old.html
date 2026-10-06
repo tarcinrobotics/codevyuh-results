@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Report Generator</title>
+  <style>
+    :root {
+      --bg: #f3f7fb;
+      --card: #ffffff;
+      --border: #d7e2ec;
+      --accent: #5e82a1;
+      --accent-deep: #35536b;
+      --text: #243746;
+      --muted: #70879c;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at top left, rgba(94,130,161,0.16), transparent 28%),
+        linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%);
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      color: var(--text);
+    }
+    .shell {
+      width: min(560px, calc(100vw - 32px));
+      background: rgba(255,255,255,0.94);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 34px 30px;
+      box-shadow: 0 24px 60px rgba(42, 67, 89, 0.12);
+    }
+    .eyebrow {
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: 1.8rem;
+      line-height: 1.15;
+      color: var(--accent-deep);
+    }
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 0.98rem;
+    }
+    .status {
+      margin-top: 24px;
+      padding: 16px 18px;
+      border-radius: 16px;
+      background: #eff5f9;
+      border: 1px solid #d5e0ea;
+      color: var(--accent-deep);
+      font-weight: 600;
+    }
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 22px;
+      flex-wrap: wrap;
+    }
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 11px 16px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .primary {
+      background: linear-gradient(135deg, #6b8eab, #4c708f);
+      color: #fff;
+    }
+    .secondary {
+      background: #edf3f7;
+      color: var(--accent-deep);
+      border: 1px solid var(--border);
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <div class="eyebrow">CODEVYUH 2026</div>
+    <h1>Student Report Generator</h1>
+    <p>This dedicated page prepares the professional PDF report in a modular flow, separate from the parent dashboard.</p>
+    <div class="status" id="status-text">Preparing report data…</div>
+    <div class="actions">
+      <button class="primary" id="download-btn" type="button" disabled>Download Report</button>
+      <button class="secondary" id="close-btn" type="button">Close</button>
+    </div>
+  </main>
+
+  <script>
+    const statusText = document.getElementById('status-text');
+    const downloadBtn = document.getElementById('download-btn');
+    const closeBtn = document.getElementById('close-btn');
+    const params = new URLSearchParams(location.search);
+    const studentId = params.get('student');
+    const autoDownload = params.get('download') === '1';
+
+    const state = {
+      profile: null,
+      breakdown: null,
+      recentSubs: [],
+      milestones: null,
+      milestoneCards: [],
+    };
+
+    function setStatus(message) {
+      statusText.textContent = message;
+    }
+
+    async function apiFetch(endpoint) {
+      const res = await fetch(`/api/parent-view/${endpoint}?studentId=${encodeURIComponent(studentId)}`);
+      if (!res.ok) throw new Error(`Failed to load ${endpoint}`);
+      return res.json();
+    }
+
+    function splitGrade(grade) {
+      const text = String(grade || '').trim();
+      if (!text || text === '—') return { className: '—', section: '—' };
+      const clean = text.replace(/\s+/g, '');
+      let match = clean.match(/^([A-Za-z0-9-]+)[-]([A-Za-z0-9]+)$/);
+      if (match) return { className: match[1], section: match[2] };
+      match = clean.match(/^([0-9IVXivx]+)([A-Za-z][0-9]*)$/);
+      if (match) return { className: match[1], section: match[2].toUpperCase() };
+      return { className: text, section: '—' };
+    }
+
+    function getMilestoneCards(m) {
+      const ns = parseInt(m.total_submissions || 0);
+      const bs = parseInt(m.best_score || 0);
+      const la = parseInt(m.levels_attempted || 0);
+      const ts = parseInt(m.total_score || 0);
+      const all = [
+        { icon:'🚀', name:'First Step', desc:'Made first submission', earned: ns >= 1 },
+        { icon:'✨', name:'Starter', desc:'Completed 3 submissions', earned: ns >= 3 },
+        { icon:'🔥', name:'On Fire', desc:'Completed 5 submissions', earned: ns >= 5 },
+        { icon:'🏃', name:'Challenger', desc:'Completed 10 submissions', earned: ns >= 10 },
+        { icon:'💪', name:'Leader', desc:'Completed 20 submissions', earned: ns >= 20 },
+        { icon:'🌠', name:'Beyonder', desc:'Completed 30 submissions', earned: ns >= 30 },
+        { icon:'⚡', name:'Power User', desc:'Completed 50 submissions', earned: ns >= 50 },
+        { icon:'🛤️', name:'Marathoner', desc:'Completed 75 submissions', earned: ns >= 75 },
+        { icon:'💯', name:'Centurion', desc:'Completed 100 submissions', earned: ns >= 100 },
+        { icon:'📍', name:'Focused Start', desc:'Reached a best score of 70+', earned: bs >= 70 },
+        { icon:'🌟', name:'Top Form', desc:'Reached a best score of 80+', earned: bs >= 80 },
+        { icon:'🎯', name:'High Scorer', desc:'Scored 90+ at least once', earned: parseInt(m.count_90_plus || 0) >= 1 },
+        { icon:'🏹', name:'Sharp Shooter', desc:'Scored 90+ five times', earned: parseInt(m.count_90_plus || 0) >= 5 },
+        { icon:'📈', name:'Above All', desc:'Scored 90+ ten times', earned: parseInt(m.count_90_plus || 0) >= 10 },
+        { icon:'💎', name:'Excellence', desc:'Scored 95+ at least once', earned: parseInt(m.count_95_plus || 0) >= 1 },
+        { icon:'🧠', name:'Elite Mind', desc:'Scored 95+ three times', earned: parseInt(m.count_95_plus || 0) >= 3 },
+        { icon:'🏆', name:'Perfect Score', desc:'Scored 100 points', earned: parseInt(m.count_perfect || 0) >= 1 },
+        { icon:'🥇', name:'Perfect Trio', desc:'Scored 100 points three times', earned: parseInt(m.count_perfect || 0) >= 3 },
+        { icon:'🔷', name:'Precision Peak', desc:'Reached a best score of 100', earned: bs >= 100 },
+        { icon:'🧭', name:'Explorer', desc:'Tried multiple challenge tracks', earned: la >= 2 },
+        { icon:'🗺️', name:'Pathfinder', desc:'Tried three challenge tracks', earned: la >= 3 },
+        { icon:'🚩', name:'All-Rounder', desc:'Covered every challenge track', earned: la >= 4 },
+        { icon:'🥉', name:'Score 250+', desc:'Total score exceeded 250', earned: ts >= 250 },
+        { icon:'💰', name:'Score 500+', desc:'Total score exceeded 500', earned: ts >= 500 },
+        { icon:'🥈', name:'Score 1000+', desc:'Total score exceeded 1000', earned: ts >= 1000 },
+      ];
+      return [...all.filter(item => item.earned), ...all.filter(item => !item.earned)];
+    }
+
+    function getStudentSuggestions(profile, breakdown, recentSubs = []) {
+      const suggestions = [];
+      const avgScore = parseFloat(profile?.avg_score || 0);
+      const schoolAvg = parseFloat(profile?.zone_avg_score || 0);
+      const avgAttempts = parseFloat(breakdown?.avg_attempts || 1);
+      const avgTime = parseFloat(breakdown?.avg_time_min || 0);
+      const timeLoss = parseFloat(breakdown?.total_time_loss || 0);
+      const wrongLoss = parseFloat(breakdown?.total_wrong_loss || 0);
+      const perfect = recentSubs.filter(r => parseInt(r.score || 0) === 100).length;
+
+      if (avgScore >= 85) {
+        suggestions.push({ label: 'Performance', text: 'Strong scoring discipline is visible. The next milestone is sustaining this standard across every contest attempt.' });
+      } else if (avgScore >= 65) {
+        suggestions.push({ label: 'Performance', text: 'The performance curve is promising. Better consistency in approach and revision can lift the average meaningfully.' });
+      } else {
+        suggestions.push({ label: 'Foundation', text: 'Core problem-solving habits need reinforcement. Focus on step-by-step reasoning before pushing for speed.' });
+      }
+
+      if (avgScore > 0 && avgScore < schoolAvg) {
+        suggestions.push({ label: 'Benchmark', text: `The student is currently ${(schoolAvg - avgScore).toFixed(1)} points below the school average, so short targeted practice cycles would help close the gap.` });
+      }
+
+      if (wrongLoss > timeLoss && avgAttempts >= 1.5) {
+        suggestions.push({ label: 'Logical Thinking', text: 'Accuracy loss is the main concern. Strengthen dry-run thinking, output checking, and first-attempt planning.' });
+      } else if (timeLoss > wrongLoss && avgTime >= 1.5) {
+        suggestions.push({ label: 'Speed', text: 'Time efficiency is the larger opportunity. Timed drills and template familiarity should improve execution pace.' });
+      } else {
+        suggestions.push({ label: 'Execution', text: 'Accuracy and pace are fairly balanced. A small gain in both areas can produce a strong overall jump.' });
+      }
+
+      if (perfect >= 3) {
+        suggestions.push({ label: 'Excellence', text: 'Repeated perfect scores indicate high potential. The focus now should be maintaining excellence under every attempt.' });
+      }
+
+      suggestions.push({ label: 'Data Note', text: 'Advice is based on score, attempts, time usage, and point deductions because hint data is not available in the current dataset.' });
+      return suggestions;
+    }
+
+    function wrapText(doc, text, x, y, maxWidth, lineHeight, color = [44, 62, 80]) {
+      doc.setTextColor(...color);
+      const lines = doc.splitTextToSize(text, maxWidth);
+      doc.text(lines, x, y);
+      return y + (lines.length * lineHeight);
+    }
+
+    function addContainedImage(doc, imageData, x, y, w, h, pad = 0) {
+      const props = doc.getImageProperties(imageData);
+      const boxW = Math.max(1, w - (pad * 2));
+      const boxH = Math.max(1, h - (pad * 2));
+      const ratio = Math.min(boxW / props.width, boxH / props.height);
+      const drawW = props.width * ratio;
+      const drawH = props.height * ratio;
+      const drawX = x + ((w - drawW) / 2);
+      const drawY = y + ((h - drawH) / 2);
+      doc.addImage(imageData, props.fileType || 'PNG', drawX, drawY, drawW, drawH);
+    }
+
+    function drawPageFrame(doc, pageTitle, subtitle) {
+      doc.setFillColor(247, 250, 252);
+      doc.rect(0, 0, 210, 297, 'F');
+      doc.setDrawColor(176, 196, 212);
+      doc.setLineWidth(0.7);
+      doc.roundedRect(8, 8, 194, 281, 6, 6, 'S');
+      doc.setFillColor(231, 239, 245);
+      doc.roundedRect(12, 12, 186, 28, 5, 5, 'F');
+      doc.setDrawColor(160, 182, 200);
+      doc.setLineWidth(0.25);
+      doc.line(12, 40, 198, 40);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(18);
+      doc.setTextColor(37, 61, 81);
+      doc.text(pageTitle, 18, 24);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(92, 117, 139);
+      doc.text(subtitle, 18, 32);
+    }
+
+    function drawSectionCard(doc, x, y, w, h, title, accent = [37, 99, 235]) {
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(214, 225, 234);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(x, y, w, h, 5, 5, 'FD');
+      doc.setFillColor(...accent);
+      doc.roundedRect(x, y, w, 11, 5, 5, 'F');
+      doc.rect(x, y + 5, w, 6, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10.5);
+      doc.setTextColor(255, 255, 255);
+      doc.text(title, x + 6, y + 7.1);
+    }
+
+    function drawMetricCard(doc, x, y, w, h, label, value, accent, sublabel = '') {
+      doc.setFillColor(252, 253, 255);
+      doc.setDrawColor(219, 228, 236);
+      doc.roundedRect(x, y, w, h, 4, 4, 'FD');
+      doc.setFillColor(...accent);
+      doc.roundedRect(x, y, w, 3.6, 4, 4, 'F');
+      doc.rect(x, y + 2, w, 1.6, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(96, 122, 145);
+      doc.text(label, x + 5, y + 10);
+      doc.setFontSize(15);
+      doc.setTextColor(37, 61, 81);
+      doc.text(String(value), x + 5, y + 20);
+      if (sublabel) {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.8);
+        doc.setTextColor(108, 131, 151);
+        doc.text(sublabel, x + 5, y + 27);
+      }
+    }
+
+    function formatRank(rank, total) {
+      const rankText = rank ? `#${rank}` : '#—';
+      return total ? `${rankText} / ${total}` : rankText;
+    }
+
+    function drawLogoTile(doc, imageData, x, y, w, h, fallbackText = '') {
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(196, 210, 223);
+      doc.setLineWidth(0.35);
+      doc.roundedRect(x, y, w, h, 4, 4, 'FD');
+      if (imageData) {
+        addContainedImage(doc, imageData, x + 2, y + 2, w - 4, h - 4, 1);
+        return;
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(76, 102, 125);
+      doc.text(fallbackText, x + (w / 2), y + (h / 2) + 1, { align: 'center' });
+    }
+
+    function drawDetailField(doc, x, y, w, label, value) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.8);
+      doc.setTextColor(98, 120, 140);
+      doc.text(label, x, y);
+      doc.setDrawColor(191, 204, 216);
+      doc.setLineWidth(0.25);
+      doc.line(x, y + 9, x + w, y + 9);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(42, 64, 84);
+      doc.text(String(value || '—'), x, y + 7);
+    }
+
+    function drawCompactMilestone(doc, x, y, w, h, item) {
+      doc.setFillColor(item.earned ? 241 : 249, item.earned ? 247 : 250, item.earned ? 252 : 253);
+      doc.setDrawColor(item.earned ? 166 : 214, item.earned ? 187 : 223, item.earned ? 206 : 231);
+      doc.setLineWidth(0.25);
+      doc.roundedRect(x, y, w, h, 3.5, 3.5, 'FD');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.4);
+      doc.setTextColor(54, 81, 104);
+      doc.text(item.earned ? 'ACHIEVED' : 'LOCKED', x + 4, y + 7.5);
+      doc.setFontSize(7.2);
+      doc.text(item.earned ? 'Earned' : 'Locked', x + w - 5, y + 7.3, { align: 'right' });
+      doc.setFontSize(8);
+      doc.text(item.name, x + 4, y + 14);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6.6);
+      doc.setTextColor(94, 115, 133);
+      const lines = doc.splitTextToSize(item.desc, w - 8);
+      doc.text(lines.slice(0, 3), x + 4, y + 19);
+    }
+
+    async function loadImageData(url, options = {}) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxWidth = options.maxWidth || 420;
+          const maxHeight = options.maxHeight || 220;
+          const ratio = Math.min(maxWidth / img.naturalWidth, maxHeight / img.naturalHeight, 1);
+          canvas.width = Math.max(1, Math.round(img.naturalWidth * ratio));
+          canvas.height = Math.max(1, Math.round(img.naturalHeight * ratio));
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.72));
+        };
+        img.onerror = reject;
+        img.src = url;
+      });
+    }
+
+    async function generateStudentReportPDF() {
+      if (!state.profile) return;
+      setStatus('Generating report PDF…');
+
+      const profile = state.profile;
+      const breakdown = state.breakdown || {};
+      const milestones = state.milestones || {};
+      const recentSubs = state.recentSubs || [];
+      const milestoneCards = state.milestoneCards || [];
+      const { className, section } = splitGrade(profile.grade);
+      const totalLost = (parseFloat(breakdown.total_wrong_loss || 0) + parseFloat(breakdown.total_time_loss || 0)).toFixed(1);
+      const suggestions = getStudentSuggestions(profile, breakdown, recentSubs);
+      const perfectScoreCount = parseInt(milestones.count_perfect || 0);
+      const avgScore = parseFloat(profile.avg_score || 0).toFixed(1);
+      const avgAttempts = parseFloat(breakdown.avg_attempts || 1).toFixed(2);
+      const avgTime = parseFloat(breakdown.avg_time_min || 0).toFixed(1);
+      const schoolAvg = parseFloat(profile.zone_avg_score || 0).toFixed(1);
+      const wrongLoss = parseFloat(breakdown.total_wrong_loss || 0).toFixed(1);
+      const timeLoss = parseFloat(breakdown.total_time_loss || 0).toFixed(1);
+      const schoolRank = formatRank(profile.rank_in_zone, profile.total_in_zone);
+      const overallRank = formatRank(profile.overall_rank, profile.total_students_overall);
+      const observationLines = [
+        `${profile.student_name || 'This student'} has built a total score of ${parseInt(profile.total_score || 0).toLocaleString()} across ${parseInt(profile.total_submissions || 0)} submissions, showing an average score of ${avgScore} points.`,
+        `The current school standing is ${schoolRank}, with an overall school rank of ${overallRank}. The student is benchmarked against a school average of ${schoolAvg} points.`,
+        wrongLoss >= timeLoss
+          ? `Most deduction impact is coming from accuracy-related loss (${wrongLoss} points), which suggests more careful solution validation is needed before submission.`
+          : `Most deduction impact is coming from time-related loss (${timeLoss} points), which indicates the student will benefit from faster execution and timed practice.`,
+      ];
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+      const logoResults = await Promise.allSettled([
+        loadImageData('/techsavvy_logo.png', { maxWidth: 280, maxHeight: 120 }),
+        loadImageData('/vadiva.png', { maxWidth: 280, maxHeight: 120 }),
+        loadImageData('/tarcin-logo.png', { maxWidth: 240, maxHeight: 110 }),
+        loadImageData('/kta_logo.png', { maxWidth: 240, maxHeight: 110 }),
+      ]);
+      const [techLogo, schoolLogo, tarcinLogo, ktaLogo] = logoResults.map(result => result.status === 'fulfilled' ? result.value : null);
+
+      doc.setFillColor(246, 249, 252);
+      doc.rect(0, 0, 210, 297, 'F');
+      doc.setDrawColor(168, 187, 203);
+      doc.setLineWidth(0.65);
+      doc.roundedRect(8, 8, 194, 281, 5, 5, 'S');
+
+      doc.setFillColor(226, 235, 243);
+      doc.roundedRect(14, 14, 182, 33, 4, 4, 'F');
+      doc.setFillColor(88, 124, 155);
+      doc.roundedRect(14, 14, 120, 33, 4, 4, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(20);
+      doc.setTextColor(255, 255, 255);
+      doc.text('STUDENT PERFORMANCE REPORT', 20, 28);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text('PYTHON CODING CONTEST @ 2026 | CODEVYUH', 20, 37);
+
+      drawLogoTile(doc, techLogo, 142, 18, 24, 20, 'TECH');
+      drawLogoTile(doc, schoolLogo, 170, 18, 20, 20, 'VADIVA');
+
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(202, 215, 226);
+      doc.roundedRect(14, 56, 182, 28, 4, 4, 'FD');
+      drawLogoTile(doc, tarcinLogo, 22, 61, 46, 18, 'TARCIN');
+      drawLogoTile(doc, ktaLogo, 142, 61, 46, 18, 'KTA');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(98, 120, 140);
+      doc.text('Technology Partner', 76, 68);
+      doc.text('Academic Partner', 76, 76);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10.2);
+      doc.setTextColor(53, 78, 101);
+      doc.text('A professional student performance summary prepared for school leadership and parents.', 76, 72);
+
+      drawSectionCard(doc, 14, 95, 182, 96, 'Student Details', [88, 124, 155]);
+      drawDetailField(doc, 22, 113, 74, 'Name', profile.student_name || '—');
+      drawDetailField(doc, 110, 113, 74, 'School Name', profile.school || '—');
+      drawDetailField(doc, 22, 141, 74, 'Class', className);
+      drawDetailField(doc, 110, 141, 74, 'Section', section);
+      drawDetailField(doc, 22, 169, 74, 'School Wise Rank', schoolRank);
+      drawDetailField(doc, 110, 169, 74, 'Overall School Rank', overallRank);
+
+      doc.setFillColor(231, 238, 245);
+      doc.roundedRect(14, 205, 182, 55, 4, 4, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      doc.setTextColor(53, 78, 101);
+      doc.text('Report Overview', 22, 220);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10.2);
+      wrapText(
+        doc,
+        `${profile.student_name || 'The student'} is currently positioned at ${schoolRank} within the school and ${overallRank} overall. This report summarises scoring strength, deduction patterns, and focused areas for improvement.`,
+        22, 230, 165, 5.5
+      );
+      doc.setFontSize(8.5);
+      doc.setTextColor(102, 124, 144);
+      doc.text('Prepared for the 2026 coding contest review cycle', 22, 254);
+      doc.text('Powered by Tarcin', 105, 284, { align: 'center' });
+
+      doc.addPage();
+      drawPageFrame(doc, 'Student KPI and Improvement Advice', 'Steel-blue performance insights with concise guidance');
+      const kpis = [
+        ['Total Score', parseInt(profile.total_score || 0).toLocaleString(), [88, 124, 155], 'Cumulative performance'],
+        ['Average Score', `${avgScore} pts`, [70, 130, 180], 'Scoring consistency'],
+        ['Average Attempts', avgAttempts, [106, 144, 173], 'Attempt efficiency'],
+        ['Average Time', `${avgTime} min`, [120, 155, 184], 'Execution pace'],
+        ['Perfect Score', String(perfectScoreCount), [96, 134, 168], '100-point finishes'],
+        ['School Average', `${schoolAvg} pts`, [133, 164, 190], 'Benchmark score'],
+      ];
+      kpis.forEach((kpi, idx) => {
+        const x = 14 + (idx % 3) * 61;
+        const y = 42 + Math.floor(idx / 3) * 34;
+        drawMetricCard(doc, x, y, 56, 27, kpi[0], kpi[1], kpi[2], kpi[3]);
+      });
+
+      drawSectionCard(doc, 14, 116, 182, 46, 'Observation Summary', [106, 144, 173]);
+      let obsY = 132;
+      observationLines.forEach(line => {
+        obsY = wrapText(doc, line, 20, obsY, 170, 5.1) + 2;
+      });
+
+      drawSectionCard(doc, 14, 170, 182, 44, 'Points Lost Highlights', [93, 144, 186]);
+      drawMetricCard(doc, 20, 184, 52, 24, 'Wrong Attempt Loss', `${wrongLoss} pts`, [120, 155, 184], 'Accuracy focus');
+      drawMetricCard(doc, 79, 184, 52, 24, 'Time Loss', `${timeLoss} pts`, [146, 176, 201], 'Speed focus');
+      drawMetricCard(doc, 138, 184, 52, 24, 'Total Points Lost', `${totalLost} pts`, [88, 124, 155], 'Combined deductions');
+
+      drawSectionCard(doc, 14, 220, 182, 54, 'Suggestions for This Student', [88, 124, 155]);
+      let sugY = 236;
+      suggestions.forEach((item, idx) => {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9.5);
+        doc.setTextColor(42, 64, 84);
+        doc.text(`${idx + 1}. ${item.label}:`, 20, sugY);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9.2);
+        sugY = wrapText(doc, item.text, 46, sugY, 144, 4.8) + 1.5;
+      });
+      doc.setFontSize(8.2);
+      doc.setTextColor(102, 124, 144);
+      doc.text('Technical focus areas are highlighted through labeled advice blocks for quick review.', 105, 284, { align: 'center' });
+
+      const fileName = `${String(profile.student_name || 'student').replace(/[^a-z0-9]+/gi, '_').toLowerCase()}_performance_report_2026.pdf`;
+      doc.save(fileName);
+      setStatus('Report generated successfully. If the download did not start, use the button below.');
+    }
+
+    async function init() {
+      if (!studentId) {
+        setStatus('No student was selected. Please return to the parent dashboard and choose a student first.');
+        return;
+      }
+      try {
+        setStatus('Loading report data…');
+        const [profile, breakdown, recentSubs, milestones] = await Promise.all([
+          apiFetch('profile'),
+          apiFetch('score-breakdown'),
+          apiFetch('recent-submissions'),
+          apiFetch('milestones'),
+        ]);
+        state.profile = profile;
+        state.breakdown = breakdown;
+        state.recentSubs = recentSubs;
+        state.milestones = milestones;
+        state.milestoneCards = getMilestoneCards(milestones);
+        downloadBtn.disabled = false;
+        setStatus(`Ready to generate the report for ${profile.student_name || 'the selected student'}.`);
+        if (autoDownload) await generateStudentReportPDF();
+      } catch (error) {
+        console.error(error);
+        setStatus('Unable to prepare the report right now. Please go back and try again.');
+      }
+    }
+
+    downloadBtn.addEventListener('click', generateStudentReportPDF);
+    closeBtn.addEventListener('click', () => window.close());
+    init();
+  </script>
+</body>
+</html>

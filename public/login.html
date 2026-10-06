@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — Velammal Dashboard Platform</title>
+  <script>
+    (() => {
+      const stored = localStorage.getItem('dashboard-theme');
+      const theme = stored === 'light' || stored === 'dark'
+        ? stored
+        : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/topbar.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    body {
+      display: grid;
+      place-items: center;
+      padding: 32px;
+      background:
+        radial-gradient(circle at top left, rgba(46,121,183,0.12), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(16,185,129,0.08), transparent 30%),
+        var(--bg-base);
+    }
+    .login-shell {
+      width: min(980px, 100%);
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      border-radius: 28px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-panel);
+      background: var(--bg-surface);
+    }
+    .login-brand {
+      padding: 44px;
+      background:
+        linear-gradient(155deg, rgba(30,111,220,0.18), rgba(12,22,41,0.08)),
+        var(--bg-panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 620px;
+    }
+    .login-brand h1 {
+      font-size: clamp(2rem, 4vw, 3.2rem);
+      line-height: 0.98;
+      letter-spacing: -0.05em;
+      margin-bottom: 14px;
+    }
+    .login-brand p {
+      color: var(--text-secondary);
+      max-width: 460px;
+      font-size: 0.98rem;
+    }
+    .login-badges {
+      display: grid;
+      gap: 12px;
+      margin-top: 28px;
+    }
+    .login-badge {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+    }
+    .login-badge svg {
+      width: 18px;
+      height: 18px;
+      color: var(--brand-accent);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .login-badge strong {
+      display: block;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .login-badge span {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    .login-panel {
+      padding: 44px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 18px;
+      background: var(--bg-surface);
+    }
+    .login-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .login-kicker {
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+    .login-panel h2 {
+      font-size: 2rem;
+      letter-spacing: -0.04em;
+    }
+    .login-panel p {
+      color: var(--text-secondary);
+    }
+    .login-summary {
+      display: grid;
+      gap: 10px;
+      padding: 16px 18px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(30,111,220,0.08), rgba(30,111,220,0.03));
+      border: 1px solid var(--border);
+    }
+    .login-summary-title {
+      font-size: 0.76rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+    .login-summary-items {
+      display: grid;
+      gap: 8px;
+    }
+    .login-summary-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-secondary);
+      font-size: 0.88rem;
+    }
+    .login-summary-item svg {
+      width: 16px;
+      height: 16px;
+      color: var(--brand-accent);
+      flex-shrink: 0;
+    }
+    .form-grid {
+      display: grid;
+      gap: 14px;
+      margin-top: 8px;
+    }
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+    .field label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .password-wrap {
+      position: relative;
+    }
+    .field input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg-input);
+      color: var(--text-primary);
+      font: inherit;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .password-wrap input {
+      padding-right: 48px;
+    }
+    .field input:focus {
+      border-color: var(--border-active);
+      box-shadow: 0 0 0 3px rgba(30,111,220,0.12);
+    }
+    .password-toggle {
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      transform: translateY(-50%);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    }
+    .password-toggle:hover {
+      background: rgba(30,111,220,0.08);
+      color: var(--text-primary);
+      border-color: var(--border);
+    }
+    .password-toggle svg {
+      width: 16px;
+      height: 16px;
+    }
+    .login-submit {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 13px 16px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+      color: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .login-submit:disabled {
+      opacity: 0.7;
+      cursor: wait;
+    }
+    .login-error {
+      min-height: 20px;
+      color: var(--color-down);
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    @media (max-width: 900px) {
+      .login-shell { grid-template-columns: 1fr; }
+      .login-brand { min-height: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-shell">
+    <section class="login-brand">
+      <div>
+        <div class="login-kicker">Velammal Dashboard Platform</div>
+        <h1>Secure Access for Every Role.</h1>
+        <p>Sign in with your assigned platform account to open only the dashboards and reports allowed for your role.</p>
+        <div class="login-badges">
+          <div class="login-badge">
+            <i data-lucide="shield-check"></i>
+            <div><strong>Super Admin</strong><span>Full platform access and account provisioning.</span></div>
+          </div>
+          <div class="login-badge">
+            <i data-lucide="school"></i>
+            <div><strong>School Admin</strong><span>School dashboard access for operational school monitoring.</span></div>
+          </div>
+          <div class="login-badge">
+            <i data-lucide="layout-dashboard"></i>
+            <div><strong>School Management</strong><span>Admin overview access for platform-level review.</span></div>
+          </div>
+          <div class="login-badge">
+            <i data-lucide="users"></i>
+            <div><strong>Parent</strong><span>Parent view access for student performance tracking and reports.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="powered-by" style="width:max-content">
+        <span class="powered-by-text">Powered by</span>
+        <img src="/tarcin-logo.png" alt="Tarcin Robotics" class="powered-by-logo" />
+      </div>
+    </section>
+
+    <section class="login-panel">
+      <div class="login-top">
+        <div>
+          <div class="login-kicker">Platform Login</div>
+          <h2>Welcome Back</h2>
+        </div>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch theme">
+          <svg data-theme-icon viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
+          <span data-theme-label>Dark Mode</span>
+        </button>
+      </div>
+      <p>Use the credentials issued by the super admin. Your login automatically opens the correct dashboard.</p>
+
+      <div class="login-summary">
+        <div class="login-summary-title">Access Policy</div>
+        <div class="login-summary-items">
+          <div class="login-summary-item"><i data-lucide="shield"></i><span>Each account opens only the dashboard allowed for its role.</span></div>
+          <div class="login-summary-item"><i data-lucide="lock-keyhole"></i><span>Credentials are centrally managed through the user access console.</span></div>
+          <div class="login-summary-item"><i data-lucide="sparkles"></i><span>Theme preference and secure session access are remembered automatically.</span></div>
+        </div>
+      </div>
+
+      <form id="login-form" class="form-grid">
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" name="username" autocomplete="username" required />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="password-wrap">
+            <input id="password" name="password" type="password" autocomplete="current-password" required />
+            <button class="password-toggle" id="password-toggle" type="button" aria-label="Show password">
+              <i data-lucide="eye"></i>
+            </button>
+          </div>
+        </div>
+        <div class="login-error" id="login-error"></div>
+        <button class="login-submit" id="login-submit" type="submit">
+          <i data-lucide="log-in"></i>
+          <span>Sign In</span>
+        </button>
+      </form>
+    </section>
+  </div>
+
+  <script src="/js/theme.js"></script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+
+    const form = document.getElementById('login-form');
+    const errorEl = document.getElementById('login-error');
+    const submitBtn = document.getElementById('login-submit');
+    const passwordInput = document.getElementById('password');
+    const passwordToggle = document.getElementById('password-toggle');
+    const params = new URLSearchParams(window.location.search);
+    const returnTo = params.get('returnTo') || '';
+
+    function updatePasswordToggle() {
+      const shown = passwordInput.type === 'text';
+      passwordToggle.setAttribute('aria-label', shown ? 'Hide password' : 'Show password');
+      passwordToggle.innerHTML = shown
+        ? '<i data-lucide="eye-off"></i>'
+        : '<i data-lucide="eye"></i>';
+      if (window.lucide) lucide.createIcons();
+    }
+
+    passwordToggle.addEventListener('click', () => {
+      passwordInput.type = passwordInput.type === 'password' ? 'text' : 'password';
+      updatePasswordToggle();
+    });
+
+    updatePasswordToggle();
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      errorEl.textContent = '';
+      submitBtn.disabled = true;
+
+      const payload = {
+        username: form.username.value,
+        password: form.password.value,
+        returnTo,
+      };
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Login failed');
+        window.location.href = data.redirectTo || '/';
+      } catch (err) {
+        errorEl.textContent = err.message;
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

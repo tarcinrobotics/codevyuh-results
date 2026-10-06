@@ -1,0 +1,32 @@
+{
+  "_schema_notes": {
+    "Submission":         "id, userId, level, score, data(text/json: timeTaken secs, attempts), createdAt",
+    "User":               "id, username, email, name, grade, role, schoolId",
+    "School":             "id, name, createdAt",
+    "scoring":            "base 100, wrong_attempt: (attempts-1)*-5, time: (timeTaken_secs/60)*-3, hint: 0, min 50",
+    "exclude_schools":    "Tarcin | ABC Matriculation School | XYZ Higher Secondary School"
+  },
+
+  "filters": {
+    "zones":  "SELECT id, name AS zone FROM \"School\" WHERE name NOT IN ('Tarcin','ABC Matriculation School','XYZ Higher Secondary School') ORDER BY name ASC"
+  },
+
+  "summary": {
+    "totalStudents":     "SELECT COUNT(*)::int AS total FROM \"User\" u JOIN \"School\" sc ON u.\"schoolId\" = sc.id WHERE sc.name NOT IN ('Tarcin','ABC Matriculation School','XYZ Higher Secondary School')",
+    "participationRate": "SELECT ROUND(100.0 * COUNT(DISTINCT s.\"userId\") / NULLIF((SELECT COUNT(*) FROM \"User\" WHERE \"schoolId\" IS NOT NULL), 0), 2) AS rate FROM \"Submission\" s JOIN \"User\" u ON s.\"userId\" = u.id JOIN \"School\" sc ON u.\"schoolId\" = sc.id WHERE sc.name NOT IN ('Tarcin','ABC Matriculation School','XYZ Higher Secondary School')",
+    "totalSubmissions":  "SELECT COUNT(*)::int AS total FROM \"Submission\" s JOIN \"User\" u ON s.\"userId\" = u.id JOIN \"School\" sc ON u.\"schoolId\" = sc.id WHERE sc.name NOT IN ('Tarcin','ABC Matriculation School','XYZ Higher Secondary School')",
+    "totalScore":        "SELECT COALESCE(SUM(s.score),0)::bigint AS total FROM \"Submission\" s JOIN \"User\" u ON s.\"userId\" = u.id JOIN \"School\" sc ON u.\"schoolId\" = sc.id WHERE sc.name NOT IN ('Tarcin','ABC Matriculation School','XYZ Higher Secondary School') AND s.score IS NOT NULL"
+  },
+
+  "zonePerformance": "SELECT sc.name AS zone, COUNT(DISTINCT u.id)::int AS student_count, COUNT(s.id)::int AS submissions, COALESCE(SUM(s.score), 0)::bigint AS total_score FROM \"School\" sc LEFT JOIN \"User\" u ON u.\"schoolId\" = sc.id LEFT JOIN \"Submission\" s ON s.\"userId\" = u.id WHERE sc.name NOT IN ('Tarcin','ABC Matriculation School','XYZ Higher Secondary School') AND ($1::text IS NULL OR sc.name = $1::text) GROUP BY sc.id, sc.name ORDER BY total_score DESC NULLS LAST",
+
+  "progressBands": "WITH student_totals AS (SELECT sc.name AS zone, u.id AS student_id, COALESCE(SUM(s.score),0) AS total_score FROM \"School\" sc LEFT JOIN \"User\" u ON u.\"schoolId\" = sc.id AND u.role = 'STUDENT' LEFT JOIN \"Submission\" s ON s.\"userId\" = u.id WHERE sc.name NOT IN ('Tarcin','ABC Matriculation School','XYZ Higher Secondary School') AND ($1::text IS NULL OR sc.name = $1::text) GROUP BY sc.name, u.id) SELECT zone, COUNT(*) FILTER (WHERE student_id IS NOT NULL AND total_score = 0)::int AS no_submission_count, COUNT(*) FILTER (WHERE total_score > 0 AND total_score < 300)::int AS emerging_count, COUNT(*) FILTER (WHERE total_score >= 300 AND total_score < 1000)::int AS progressing_count, COUNT(*) FILTER (WHERE total_score >= 1000)::int AS advanced_count FROM student_totals GROUP BY zone ORDER BY (COUNT(*) FILTER (WHERE total_score >= 1000)) DESC, (COUNT(*) FILTER (WHERE total_score >= 300 AND total_score < 1000)) DESC, zone ASC",
+
+  "scoringBreakdown": "SELECT sc.name AS zone, COALESCE(SUM(s.score), 0)::bigint AS total_score, ROUND(SUM(GREATEST(0, COALESCE((s.data::jsonb->>'attempts')::numeric, 1) - 1) * 5.0)::numeric, 2) AS total_wrong_deduction, ROUND(SUM((COALESCE((s.data::jsonb->>'timeTaken')::numeric, 0) / 60.0) * 3.0)::numeric, 2) AS total_time_deduction, 0.0 AS total_hint_deduction, COUNT(*)::int AS submissions FROM \"Submission\" s JOIN \"User\" u ON s.\"userId\" = u.id JOIN \"School\" sc ON u.\"schoolId\" = sc.id WHERE s.score IS NOT NULL AND sc.name NOT IN ('Tarcin','ABC Matriculation School','XYZ Higher Secondary School') AND ($1::text IS NULL OR sc.name = $1::text) GROUP BY sc.id, sc.name ORDER BY total_score DESC NULLS LAST",
+
+  "zoneScoreRanges": "WITH zone_totals AS (SELECT sc.name AS zone, COALESCE(SUM(s.score), 0) AS total_score FROM \"School\" sc LEFT JOIN \"User\" u ON u.\"schoolId\" = sc.id LEFT JOIN \"Submission\" s ON s.\"userId\" = u.id WHERE sc.name NOT IN ('Tarcin','ABC Matriculation School','XYZ Higher Secondary School') AND ($1::text IS NULL OR sc.name = $1::text) GROUP BY sc.id, sc.name) SELECT zone, total_score, CASE WHEN total_score < 5000 THEN '0 – 5K' WHEN total_score < 20000 THEN '5K – 20K' WHEN total_score < 50000 THEN '20K – 50K' WHEN total_score < 100000 THEN '50K – 100K' WHEN total_score < 250000 THEN '100K – 250K' WHEN total_score < 500000 THEN '250K – 500K' ELSE '500K+' END AS score_range FROM zone_totals ORDER BY total_score DESC NULLS LAST",
+
+  "topStudents": "SELECT COALESCE(u.name, u.username) AS student_name, COALESCE(NULLIF(u.grade,''),'Unknown') AS grade, sc.name AS school, COALESCE(SUM(s.score),0)::bigint AS total_score FROM \"User\" u JOIN \"School\" sc ON u.\"schoolId\" = sc.id LEFT JOIN \"Submission\" s ON s.\"userId\" = u.id WHERE u.role = 'STUDENT' AND sc.name NOT IN ('Tarcin','ABC Matriculation School','XYZ Higher Secondary School') AND ($1::text IS NULL OR sc.name = $1::text) GROUP BY u.id, u.name, u.username, u.grade, sc.name HAVING COALESCE(SUM(s.score),0) > 0 ORDER BY total_score DESC NULLS LAST, student_name ASC",
+
+  "topPerformingZones": "WITH zone_stats AS (SELECT sc.name AS zone, COUNT(DISTINCT u.id) AS total_members, COUNT(DISTINCT CASE WHEN s.id IS NOT NULL THEN u.id END) AS active_members, COALESCE(SUM(s.score), 0)::bigint AS total_score FROM \"School\" sc LEFT JOIN \"User\" u ON u.\"schoolId\" = sc.id LEFT JOIN \"Submission\" s ON s.\"userId\" = u.id WHERE sc.name NOT IN ('Tarcin','ABC Matriculation School','XYZ Higher Secondary School') GROUP BY sc.id, sc.name) SELECT z.zone, z.total_members::int, z.active_members::int, (z.total_members - z.active_members)::int AS inactive_members, ROUND(100.0 * z.active_members / NULLIF(z.total_members, 0), 1) AS activity_rate, z.total_score FROM zone_stats z WHERE ($1::text IS NULL OR LOWER(z.zone) = LOWER($1::text)) ORDER BY z.total_score DESC NULLS LAST"
+}

@@ -1,0 +1,3 @@
+@echo off
+echo Starting PostgreSQL cluster on port 54333...
+"D:\temp_pgsql\pgsql\bin\postgres.exe" -D "D:\temp_pgsql\data" -p 54333
