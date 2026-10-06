@@ -1,7 +1,14 @@
+const dns = require('dns');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const { auth: authConfig } = require('../config');
 const UserAccount = require('./models/UserAccount');
+
+// On Windows / home ISPs, Node.js SRV resolution for mongodb+srv can fail with ECONNREFUSED.
+// Configuring public DNS resolvers ensures Atlas SRV connection succeeds reliably.
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (_) {}
 
 async function connectMongo() {
   if (mongoose.connection.readyState === 1) return mongoose.connection;

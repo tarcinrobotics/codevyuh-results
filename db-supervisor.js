@@ -21,6 +21,7 @@ const PG_HOST = '127.0.0.1';
 const PG_DATA_DIR = 'D:\\temp_pgsql\\data';
 const PG_BIN_CANDIDATES = [
   'D:\\temp_pgsql\\pgsql\\bin\\postgres.exe',
+  'C:\\Program Files\\PostgreSQL\\18\\bin\\postgres.exe',
   'C:\\Program Files\\PostgreSQL\\17\\bin\\postgres.exe',
   'C:\\Program Files\\PostgreSQL\\16\\bin\\postgres.exe',
 ];
@@ -137,8 +138,8 @@ function isPidAlive(pid) {
  * Thread-safe / Promise-safe singleton: multiple concurrent calls await the exact same operation.
  */
 async function ensurePostgres(host = PG_HOST, port = PG_PORT, dbName = 'codevyuh_db') {
-  // Only manage local PostgreSQL instances
-  if (host !== '127.0.0.1' && host !== 'localhost') {
+  // Only manage local PostgreSQL instances when not running on Vercel
+  if (process.env.VERCEL || (host !== '127.0.0.1' && host !== 'localhost')) {
     return true;
   }
 

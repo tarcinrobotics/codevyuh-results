@@ -7,6 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 function parseEnv(filePath) {
+  if (!fs.existsSync(filePath)) return {};
   const raw = fs.readFileSync(filePath, 'utf-8');
   const config = {};
   raw.split('\n').forEach((line) => {
