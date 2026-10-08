@@ -22,6 +22,22 @@ function parseEnv(filePath) {
   return config;
 }
 
+function parsePostgresSsl(value) {
+  const mode = String(value || '').trim().toLowerCase();
+
+  if (!mode || ['false', 'disable', 'disabled', '0', 'no'].includes(mode)) {
+    return false;
+  }
+
+  if (['verify-ca', 'verify-full'].includes(mode)) {
+    return { rejectUnauthorized: true };
+  }
+
+  // Aiven's default `sslmode=require` encrypts traffic without requiring
+  // the project CA certificate to be bundled with the application.
+  return { rejectUnauthorized: false };
+}
+
 const envPath = path.resolve(__dirname, '.env');
 const env = parseEnv(envPath);
 
@@ -32,9 +48,9 @@ module.exports = {
     user:     process.env.DB_USER || env['User'] || 'postgres',
     password: process.env.DB_PASSWORD !== undefined ? process.env.DB_PASSWORD : (env['Password'] || ''),
     database: process.env.DB_NAME || env['Database'] || 'postgres',
-    ssl:      process.env.DB_SSL !== undefined
-      ? (process.env.DB_SSL === 'true')
-      : ((env['SSL Mode'] || '').toLowerCase() === 'require' ? { rejectUnauthorized: false } : false),
+    ssl:      parsePostgresSsl(
+      process.env.DB_SSL !== undefined ? process.env.DB_SSL : env['SSL Mode']
+    ),
   },
   server: {
     port: parseInt(process.env.PORT || process.env.SERVER_PORT || env['SERVER_PORT'] || '3000', 10),
