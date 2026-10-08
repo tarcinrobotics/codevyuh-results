@@ -37,16 +37,16 @@ module.exports = {
       : ((env['SSL Mode'] || '').toLowerCase() === 'require' ? { rejectUnauthorized: false } : false),
   },
   server: {
-    port: parseInt(env['SERVER_PORT'] || '3000', 10),
+    port: parseInt(process.env.PORT || process.env.SERVER_PORT || env['SERVER_PORT'] || '3000', 10),
   },
   auth: {
-    mongoUri: env.MONGO_URI || 'mongodb://127.0.0.1:27017/velammal_dashboard_auth',
-    sessionSecret: env.SESSION_SECRET || 'velammal-dashboard-local-secret',
-    sessionName: env.SESSION_NAME || 'velammal.sid',
+    mongoUri: process.env.MONGO_URI || env.MONGO_URI || 'mongodb://127.0.0.1:27017/velammal_dashboard_auth',
+    sessionSecret: process.env.SESSION_SECRET || env.SESSION_SECRET || 'velammal-dashboard-local-secret',
+    sessionName: process.env.SESSION_NAME || env.SESSION_NAME || 'velammal.sid',
     superAdmin: {
-      username: env.SUPER_ADMIN_USERNAME || 'superadmin',
-      password: env.SUPER_ADMIN_PASSWORD || 'SuperAdmin@123',
-      displayName: env.SUPER_ADMIN_NAME || 'Platform Super Admin',
+      username: process.env.SUPER_ADMIN_USERNAME || env.SUPER_ADMIN_USERNAME || 'superadmin',
+      password: process.env.SUPER_ADMIN_PASSWORD || env.SUPER_ADMIN_PASSWORD || 'SuperAdmin@123',
+      displayName: process.env.SUPER_ADMIN_NAME || env.SUPER_ADMIN_NAME || 'Platform Super Admin',
     },
   },
 };
