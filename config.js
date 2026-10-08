@@ -38,18 +38,49 @@ function parsePostgresSsl(value) {
   return { rejectUnauthorized: false };
 }
 
+function parsePostgresUrl(value) {
+  if (!value) return {};
+
+  try {
+    const parsed = new URL(value);
+    if (!['postgres:', 'postgresql:'].includes(parsed.protocol)) return {};
+
+    return {
+      host: parsed.hostname || undefined,
+      port: parsed.port ? parseInt(parsed.port, 10) : undefined,
+      user: parsed.username ? decodeURIComponent(parsed.username) : undefined,
+      password: parsed.password ? decodeURIComponent(parsed.password) : undefined,
+      database: parsed.pathname
+        ? decodeURIComponent(parsed.pathname.replace(/^\/+/, ''))
+        : undefined,
+      sslMode: parsed.searchParams.get('sslmode') || undefined,
+    };
+  } catch (_) {
+    return {};
+  }
+}
+
 const envPath = path.resolve(__dirname, '.env');
 const env = parseEnv(envPath);
+const databaseUrl = process.env.DATABASE_URL
+  || process.env.AIVEN_DATABASE_URL
+  || env.DATABASE_URL
+  || env['Service URI'];
+const urlDb = parsePostgresUrl(databaseUrl);
 
 module.exports = {
   db: {
-    host:     process.env.DB_HOST || env['Host'] || 'localhost',
-    port:     parseInt(process.env.DB_PORT || env['Port'] || '5432', 10),
-    user:     process.env.DB_USER || env['User'] || 'postgres',
-    password: process.env.DB_PASSWORD !== undefined ? process.env.DB_PASSWORD : (env['Password'] || ''),
-    database: process.env.DB_NAME || env['Database'] || 'postgres',
+    host:     process.env.DB_HOST || process.env.PGHOST || urlDb.host || env['Host'] || 'localhost',
+    port:     parseInt(process.env.DB_PORT || process.env.PGPORT || urlDb.port || env['Port'] || '5432', 10),
+    user:     process.env.DB_USER || process.env.PGUSER || urlDb.user || env['User'] || 'postgres',
+    password: process.env.DB_PASSWORD !== undefined
+      ? process.env.DB_PASSWORD
+      : (process.env.PGPASSWORD !== undefined ? process.env.PGPASSWORD : (urlDb.password || env['Password'] || '')),
+    database: process.env.DB_NAME || process.env.PGDATABASE || urlDb.database || env['Database'] || 'postgres',
     ssl:      parsePostgresSsl(
-      process.env.DB_SSL !== undefined ? process.env.DB_SSL : env['SSL Mode']
+      process.env.DB_SSL !== undefined
+        ? process.env.DB_SSL
+        : (process.env.PGSSLMODE || urlDb.sslMode || env['SSL Mode'])
     ),
   },
   server: {
