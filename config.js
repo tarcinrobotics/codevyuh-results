@@ -70,17 +70,19 @@ const urlDb = parsePostgresUrl(databaseUrl);
 
 module.exports = {
   db: {
-    host:     process.env.DB_HOST || process.env.PGHOST || urlDb.host || env['Host'] || 'localhost',
-    port:     parseInt(process.env.DB_PORT || process.env.PGPORT || urlDb.port || env['Port'] || '5432', 10),
-    user:     process.env.DB_USER || process.env.PGUSER || urlDb.user || env['User'] || 'postgres',
+    host:     process.env.DB_HOST || process.env.PGHOST || urlDb.host || env.DB_HOST || env['Host'] || 'localhost',
+    port:     parseInt(process.env.DB_PORT || process.env.PGPORT || urlDb.port || env.DB_PORT || env['Port'] || '5432', 10),
+    user:     process.env.DB_USER || process.env.PGUSER || urlDb.user || env.DB_USER || env['User'] || 'postgres',
     password: process.env.DB_PASSWORD !== undefined
       ? process.env.DB_PASSWORD
-      : (process.env.PGPASSWORD !== undefined ? process.env.PGPASSWORD : (urlDb.password || env['Password'] || '')),
-    database: process.env.DB_NAME || process.env.PGDATABASE || urlDb.database || env['Database'] || 'postgres',
+      : (process.env.PGPASSWORD !== undefined
+        ? process.env.PGPASSWORD
+        : (urlDb.password || env.DB_PASSWORD || env['Password'] || '')),
+    database: process.env.DB_NAME || process.env.PGDATABASE || urlDb.database || env.DB_NAME || env['Database'] || 'postgres',
     ssl:      parsePostgresSsl(
       process.env.DB_SSL !== undefined
         ? process.env.DB_SSL
-        : (process.env.PGSSLMODE || urlDb.sslMode || env['SSL Mode'])
+        : (process.env.PGSSLMODE || urlDb.sslMode || env.DB_SSL || env['SSL Mode'])
     ),
   },
   server: {
