@@ -1,709 +1,464 @@
-I need to audit and refactor the existing Codevyuh dashboard based on a requirement from my TL.
-
-==================================================
-TL REQUIREMENT
-==================================================
-
-My TL said that the current dashboard contains too much general/platform-wide data that is not required for the current task.
-
-The dashboard should now focus specifically on these TWO events:
-
-1. Madurai Tech Cup Demo (KLN School)
-2. Mock Exam - Madurai Tech Cup
+# DEVELOPMENT TASK: Separate KLN PRELIMS and Dolphin PRELIMS Dashboards with Independent Logins
 
-The goal is NOT to rebuild the application from scratch.
+## 1. Project Overview
 
-Instead:
+**Project:** `dashboard-codevyuh`  
+**Application:** Codevyuh Event Insights Dashboard  
+**Local URL:** `http://localhost:3001`  
+**Login endpoint:** `http://localhost:3001/login`  
+**Backend:** Existing Node.js / Express application  
+**Database:** Existing PostgreSQL database, configured locally on `127.0.0.1:54333`, database name `codevyuh_db`.
 
-- Keep the existing common/reusable dashboard infrastructure.
-- Keep the existing visual style and UI design where appropriate.
-- Keep reusable Chart.js components/configuration.
-- Remove dashboard sections, KPIs, charts, filters and calculations that are completely unrelated to these two events.
-- Replace the irrelevant platform-wide insights with meaningful event-specific insights.
-- Use only data that actually exists in the PostgreSQL dump/database.
-- Do not invent scores, marks, results or performance metrics.
+### Primary objective
 
-Before modifying any code, perform a complete READ-ONLY AUDIT and generate documentation explaining what should be kept, replaced, removed and added.
+Separate the two existing events into independent, securely authenticated dashboard environments, each displaying only its own event's data.
 
-==================================================
-INPUTS
-==================================================
+The application currently includes multiple dashboard modules. **All existing dashboard modules, their URLs, styling, layouts, charts, functionality, navigation, and responsive behavior must be preserved.**
 
-1. PostgreSQL dump:
+This is a focused enhancement to the existing application, not a complete redesign or rewrite.
 
-codevyuh_db_2026_09_26.dump
+Before implementation, inspect the existing project, routes, authentication system, database schema, and dashboard dependencies. Make the smallest safe set of changes that meets the requirements.
 
-2. Existing dashboard repository:
+---
 
-dashboard-codevyuh
+## 2. Correct Event Mapping and Renaming
 
-3. Existing application runs locally and already contains the dashboard UI and Chart.js-based visualizations.
+There are two existing events. Their participant data must remain correctly associated with their original event IDs.
 
-The existing UI currently contains concepts such as:
+### Event A — KLN PRELIMS
 
-- Top 3 Students
-- Platform Overview
-- Total Students
-- Participation Rate
-- Total Submissions
-- Total Score
-- Submission Intensity
-- School filters
-- School status filters
-- Generic platform-wide charts/data
+- **New display name:** `KLN PRELIMS`
+- Original event name: `Madurai Tech Cup Demo (KLN School)`
+- Expected participants: 107
+- Event ID: `0542016a-b443-421e-9ae0-a4787697b945`
+- Username: `admin@kln`
+- Password: `klnprelims@2026`
 
-==================================================
-PHASE 1 — REPOSITORY AUDIT
-==================================================
+### Event B — Dolphin PRELIMS
 
-Inspect the complete existing dashboard repository.
+- **New display name:** `Dolphin PRELIMS`
+- Original event name: `Mock Exam - Madurai Tech Cup`
+- Expected participants: 555
+- Event ID: `e4bd56c6-924d-49bb-9c3a-e2c74eab9f89`
+- Username: `admin@dolphin`
+- Password: `dolphinprelims@2026`
 
-Analyze:
+### Data preservation rules
 
-- HTML files
-- CSS
-- JavaScript
-- Chart.js implementation
-- API routes
-- SQL queries
-- Database access code
-- Server code
-- Configuration
-- Authentication
-- Filters
-- Dashboard components
-- Reusable cards
-- Tables
-- Existing charts
-- Data transformation/calculation logic
+1. Preserve both existing event IDs.
+2. Preserve the existing participants and their event relationships.
+3. Update user-facing event names consistently throughout the application.
+4. Avoid unnecessary database schema changes, duplicate event creation, participant reassignment, or record deletion.
+5. If database name changes are required, prefer updating the relevant display-name mapping rather than performing destructive migrations.
+6. Verify the actual participant counts before declaring them correct. Investigate discrepancies without fabricating records or silently modifying the database.
 
-Create a file:
+The original event names may remain in historical records where necessary, but the dashboard interface should consistently display `KLN PRELIMS` and `Dolphin PRELIMS`.
 
-AUDIT_01_EXISTING_DASHBOARD.md
+---
 
-Document:
+## 3. Login Page: Two Separate Event Login Cards
 
-1. Application architecture
-2. Page structure
-3. Main dashboard entry point
-4. Existing UI sections
-5. Existing KPI cards
-6. Existing charts
-7. Existing filters
-8. Existing API endpoints
-9. Existing SQL queries
-10. Chart.js usage
-11. Reusable components
-12. Platform-wide/global data
-13. Event-specific data
-14. Dependencies
-15. Potentially obsolete code
+Keep the existing endpoint unchanged:
 
-For every major dashboard section classify it as:
+`http://localhost:3001/login`
 
-KEEP
-REPLACE
-REMOVE
-MODIFY
+Create two clear, professional login cards on the existing login page.
 
-and explain WHY.
+### Card A — KLN PRELIMS
 
-==================================================
-PHASE 2 — DATABASE/DUMP AUDIT
-==================================================
+Include:
 
-Inspect the PostgreSQL dump using PostgreSQL tools.
+- Appropriate academic or examination icon.
+- Title: `KLN PRELIMS`
+- Subtitle: `KLN Vidyalaya CBSE Senior Secondary School`
+- Description: `Access the KLN PRELIMS dashboard and event insights.`
+- Username field.
+- Password field with show/hide toggle.
+- Button: `Login to KLN PRELIMS`.
 
-First verify the dump:
+### Card B — Dolphin PRELIMS
 
-pg_restore --list "codevyuh_db_2026_09_26.dump"
+Include:
 
-Restore it into a SAFE temporary/local database.
+- Appropriate academic or examination icon.
+- Title: `Dolphin PRELIMS`
+- Description: `Access the Dolphin PRELIMS dashboard and event insights.`
+- Username field.
+- Password field with show/hide toggle.
+- Button: `Login to Dolphin PRELIMS`.
 
-DO NOT modify the original dump.
+### Login UI requirements
 
-Discover the complete schema.
+- Display the cards side by side on desktop.
+- Stack the cards vertically on mobile.
+- Maintain consistent spacing, typography, borders, card sizing, and visual hierarchy.
+- Include input validation, loading indicators, accessible labels, and appropriate error messages.
+- Prevent multiple submissions while a login request is processing.
+- Provide clear feedback for invalid credentials and unavailable services.
+- Do not prefill or visibly display administrator credentials.
+- Do not allow either card to bypass server-side authentication.
+- Preserve the existing Tarcin branding and the application's professional appearance.
 
-Do not assume table names.
+### Required design style
 
-Inspect:
+Use the existing dashboard design and reference screenshot:
 
-- tables
-- columns
-- primary keys
-- foreign keys
-- indexes
-- views
-- relevant functions
-- relevant JSON/JSONB fields
+- Dark navy and charcoal backgrounds.
+- Blue and cyan accents.
+- Existing typography and icon styles.
+- Restrained gradients and glow effects.
+- Rounded cards and subtle borders.
+- Clean spacing and a premium, modern dashboard appearance.
+- Responsive layouts across desktop, tablet, and mobile.
 
-Create:
+Do not introduce an unrelated design system, unnecessary dependencies, or excessive animations.
 
-AUDIT_02_DATABASE_SCHEMA.md
+---
 
-==================================================
-PHASE 3 — FIND THE TWO EVENTS
-==================================================
+## 4. Preserve All Four Existing Dashboard Modules and Routes
 
-Search the database for these exact events:
+**This requirement is critical: Do not remove, rename, break, or redesign the following existing dashboard routes. They must remain available at their current URLs and retain their current appearance, functionality, layout, and visual style.**
 
-1. Madurai Tech Cup Demo (KLN School)
-2. Mock Exam - Madurai Tech Cup
+<escape>→ Admin Overview: `http://localhost:3001/admin-overview`
 
-Use exact matching first and case-insensitive matching as fallback.
+→ School Dashboard: `http://localhost:3001/zone-dashboard`
 
-Find:
+→ Parent View: `http://localhost:3001/parent-view`
 
-- event ID
-- event name
-- slug
-- status
-- event type
-- mode
-- school/organization
-- start date
-- end date
-- created date
-- updated date
-- registration token/link if appropriate
-- event configuration
-- tracks/categories
-- participant count
+→ User Access: `http://localhost:3001/user-management`</escape>
 
-Trace all foreign-key relationships.
+### A. Admin Overview
 
-Create:
+Preserve `/admin-overview`.
 
-AUDIT_03_EVENT_DATA.md
+Keep the existing overview layout, KPI cards, navigation, charts, summaries, and other currently supported functions.
 
-Clearly document the exact database records belonging to each event.
+After login, show the relevant event's data only. KLN administrators must see KLN PRELIMS information, while Dolphin administrators must see Dolphin PRELIMS information.
 
-==================================================
-PHASE 4 — PERFORMANCE DATA INVESTIGATION
-==================================================
+### B. School Dashboard
 
-This is VERY IMPORTANT.
+Preserve `/zone-dashboard`.
 
-Determine whether these two events actually contain performance-related data.
+Retain the existing school dashboard's design, components, charts, filters, and currently supported features.
 
-Search for all relevant concepts/fields such as:
+Ensure the dashboard displays the appropriate event's school, grade, section, and participant data, according to the existing schema and authenticated user's permissions.
 
-- score
-- scores
-- marks
-- result
-- results
-- submission
-- submissions
-- attempt
-- attempts
-- answer
-- correct
-- incorrect
-- unanswered
-- percentage
-- rank
-- leaderboard
-- completion
-- accuracy
-- timeTaken
-- duration
-- challengeScore
-- qualification
-- certificate
-- performance
-- assessment
+Do not remove existing school dashboard features merely because two separate event logins are being introduced.
 
-Inspect relevant tables and relationships.
+### C. Parent View
 
-Specifically verify whether event-linked records exist in tables similar to:
+Preserve `/parent-view`.
 
-- Submission
-- SubmissionSnapshot
-- OfficialResultSnapshot
-- ChallengeStatus
-- Qualification
-- TrackCertificate
-- Leaderboard/result tables
-- Assessment/result tables
-- Any other actual performance tables discovered in the schema
+Keep the current interface and supported parent-view functionality unchanged wherever possible.
 
-DO NOT assume the table names above exist.
+Ensure that parent or student information, where available, is restricted to the correct event and the existing authorization rules. An event administrator must not gain access to unrelated event records by changing a URL, identifier, or request parameter.
 
-For each performance-related table found, determine:
+Do not invent parent records or student-performance data where none exists.
 
-- Does it contain records?
-- Can records be linked to the two events?
-- What is the foreign key?
-- What metrics are available?
-- Are scores/marks real event-specific values?
-- Can student-level performance be safely calculated?
+### D. User Access
 
-Create:
+Preserve `/user-management`.
 
-AUDIT_04_PERFORMANCE_DATA.md
+Retain the existing user-management page, layout, controls, and supported functionality.
 
-Include a table:
+Enforce event-level permissions securely. An event administrator must only be able to view or manage users that they are authorized to manage for their event.
 
-| Metric | KLN Event | Mock Exam | Source Table | Usable? |
-|--------|-----------|-----------|-------------|---------|
-| Participants | | | | |
-| Scores | | | | |
-| Marks | | | | |
-| Results | | | | |
-| Submissions | | | | |
-| Accuracy | | | | |
-| Rank | | | | |
-| Completion | | | | |
-| Time Taken | | | | |
+An administrator for KLN PRELIMS must not be able to manage Dolphin PRELIMS users or obtain their information. The reverse restriction must also apply.
 
-IMPORTANT:
+If the existing application has a platform super-administrator role with broader privileges, preserve that role's existing authorized functionality. Do not grant global super-administrator privileges to either event-specific account.
 
-If performance data does NOT exist, explicitly say:
+### Rules applicable to all four routes
 
-"Performance visualization cannot currently be generated from this dump."
+1. Keep all four URLs unchanged.
+2. Do not replace the existing pages with new, simplified pages.
+3. Preserve their current styling, components, behavior, and responsive layouts.
+4. Reuse the existing frontend components and backend routes where practical.
+5. Scope the displayed data to the currently authenticated user's permitted event.
+6. Enforce authorization in backend middleware and API handlers, not only through frontend filters.
+7. Keep shared application features working wherever they are currently supported.
+8. Ensure direct URL navigation, browser refresh, and in-app navigation behave correctly.
+9. Unauthenticated requests to protected content must be redirected to login or rejected with an appropriate API response.
+10. Do not allow cross-event access through edited URLs, query parameters, request bodies, or client-side state.
 
-Do NOT calculate fake scores or infer performance from registration data.
+If some functionality is inherently global, preserve it only for roles that are already authorized to access it. Do not silently change existing permission rules.
 
-==================================================
-PHASE 5 — EVENT DATASET DESIGN
-==================================================
+---
 
-Identify exactly what data is available for meaningful visualization.
+## 5. Secure Event-Specific Authentication
 
-For each event identify:
+Inspect the existing authentication routes, middleware, session handling, user-management implementation, and database schema before making changes.
 
-A. Event metadata
-B. Participant data
-C. Grade/class distribution
-D. Registration timeline
-E. School/organization information
-F. Tracks/categories
-G. Event status
-H. Any actual result/performance data
-I. Other useful measurable fields
+Reuse the current authentication infrastructure when it can safely support event-scoped accounts.
 
-Create:
+Configure these accounts with the following event permissions:
 
-AUDIT_05_EVENT_ANALYTICS_DATASET.md
+| Account | Username | Authorized event |
+|---|---|---|
+| KLN administrator | `admin@kln` | KLN PRELIMS only |
+| Dolphin administrator | `admin@dolphin` | Dolphin PRELIMS only |
 
-Define the recommended dataset for the frontend.
+### Security requirements
 
-Example:
+1. Validate credentials on the server.
+2. Store passwords securely using the existing approved password-hashing mechanism or an appropriate secure hash such as bcrypt.
+3. Never embed plaintext passwords in frontend HTML, JavaScript bundles, public configuration, API responses, or committed source code.
+4. Use server-side session or equivalent trusted authentication context to determine the authenticated account's permitted event.
+5. Do not trust an event ID provided by the browser as proof of authorization.
+6. Prevent unauthorized access to the other event's participant data, metrics, charts, APIs, reports, and protected routes.
+7. Preserve suitable session expiration and secure logout behavior.
+8. Use HTTP-only cookies and appropriate SameSite settings where cookie-based sessions are used; enable Secure cookies in HTTPS production environments.
+9. Add login rate limiting and generic authentication errors that do not disclose whether a username exists.
+10. Validate all user-controlled inputs and use parameterized SQL queries.
+11. Do not log passwords, session secrets, or sensitive authentication tokens.
+12. Keep environment-specific secrets out of Git.
+13. Ensure event administrators cannot escalate their privileges using the User Access page or API.
+14. Revoke the authenticated session correctly during logout.
 
-event_overview
-event_participants
-grade_distribution
-registration_trend
-event_tracks
-performance_results
+### Environment configuration
 
-Only include datasets that actually exist.
+Use the existing configuration approach where appropriate. If new environment variables or administrator password hashes are required, document their names and setup process.
 
-==================================================
-PHASE 6 — VISUALIZATION PLAN
-==================================================
+Keep actual secrets out of committed `.env` files and source code. Update `.gitignore` if required, but do not assume that ignoring a file removes it from Git history.
 
-Analyze the existing dashboard's current visual style.
+Do not create conflicting authentication implementations or weaken existing security to make the new login flow work.
 
-Do NOT introduce a completely different design.
+---
 
-Use the existing:
+## 6. Event-Specific Dashboard Access and Navigation
 
-- cards
-- typography
-- spacing
-- borders
-- shadows
-- colors
-- responsive layout
-- Chart.js configuration
-- existing interaction patterns
+After successful authentication, redirect each account to the correct event-specific dashboard environment.
 
-Design a new Event Insights dashboard.
+Suggested landing routes, subject to the existing architecture:
 
-Recommended structure:
+- KLN PRELIMS: `/kln/dashboard`
+- Dolphin PRELIMS: `/dolphin/dashboard`
 
-----------------------------------
-EVENT INSIGHTS
-----------------------------------
+Reuse the existing dashboard architecture wherever practical. Do not duplicate the full frontend and backend unnecessarily.
 
-Event selector:
+### KLN account
 
-[ Madurai Tech Cup Demo (KLN School) ▼ ]
+- Default event: `0542016a-b443-421e-9ae0-a4787697b945`
+- Expected participant count: 107
+- Must display only KLN PRELIMS data.
 
-or
+### Dolphin account
 
-[ Mock Exam - Madurai Tech Cup ▼ ]
+- Default event: `e4bd56c6-924d-49bb-9c3a-e2c74eab9f89`
+- Expected participant count: 555
+- Must display only Dolphin PRELIMS data.
 
-----------------------------------
-EVENT OVERVIEW
-----------------------------------
+Both authenticated event administrators should retain access to the four existing modules according to their existing role permissions, with each module scoped to their respective event.
 
-KPI Cards:
+Update navigation carefully so that the currently logged-in administrator can move between the four existing modules without losing event authorization.
 
-- Total Participants
-- Event Status
-- Grade/Class Coverage
-- Number of Tracks/Categories
+Do not allow event administrators to switch between events unless an existing, explicitly authorized platform super-administrator workflow permits it.
 
-Only display metrics that actually exist.
+The login page should remain accessible at `/login`, and logout should return the user to `/login` after invalidating the session.
 
-----------------------------------
-PARTICIPATION INSIGHTS
-----------------------------------
+---
 
-Chart 1:
-Participants by Grade/Class
+## 7. Preserve Accurate Dashboard Data
 
-Chart.js:
-Bar chart
+Preserve the existing Event Insights dashboard style and currently supported functionality, including:
 
-Chart 2:
-Grade Distribution
+- Registered participant totals.
+- Grade and section coverage.
+- Cohort breakdowns and distribution charts.
+- Event status and allocated duration, where supported by the database.
+- Admin Overview functionality.
+- School Dashboard functionality.
+- Parent View functionality.
+- User Access functionality.
+- Existing navigation, responsive design, and shared UI components.
 
-Chart.js:
-Doughnut chart
+Use the existing PostgreSQL records as the source of truth.
 
-Chart 3:
-Registration Trend
+Verify all event filters, joins, API responses, totals, and chart calculations against the correct event IDs.
 
-Chart.js:
-Line chart
+Do not fabricate marks, rankings, scores, completion rates, accuracy percentages, or other performance indicators that lack underlying source data. Provide sensible empty states for unavailable metrics.
 
-Only use this if timestamps exist.
+Do not hardcode participant numbers merely to make the dashboard look correct. Use verified database queries.
 
-----------------------------------
-EVENT STRUCTURE
-----------------------------------
+Avoid destructive migrations, accidental record deletion, duplicate events, and unnecessary changes to the database schema.
 
-Track/category distribution.
+---
 
-Chart.js:
-Bar or Doughnut chart.
+## 8. Audit and Repair Database Connectivity and Startup
 
-Only show this when applicable to the selected event.
+The application has previously experienced PostgreSQL connection failures, including connection-refused errors, `ECONNRESET`, unexpected connection termination, and repeated database-supervisor startup attempts.
 
-----------------------------------
-PERFORMANCE
-----------------------------------
+Inspect the existing database and startup implementation, including:
 
-ONLY create this section if actual event-linked result/submission data exists.
+- `db.js`
+- `db-supervisor.js`
+- `start_postgres.bat`
+- `server.js`
+- `routes/event-insights.js`
+- Existing authentication and authorization routes.
+- Relevant dashboard and API JavaScript files.
+- `.env`
+- `package.json`
+- `nodemon.json`
+- Other relevant database and session configuration files.
 
-Possible charts:
+### Required checks
 
-- Score distribution
-- Average score
-- Highest/lowest score
-- Pass/fail
-- Accuracy
-- Correct vs incorrect
-- Completion
-- Rank/leaderboard
-- Time taken
+1. Confirm the configured PostgreSQL host, port, database, and user.
+2. Verify that the intended PostgreSQL instance is reachable.
+3. Inspect the real database data directory only when required; do not assume the project folder is the live database directory.
+4. Ensure PostgreSQL is not repeatedly started for individual API requests.
+5. Prevent duplicate database-supervisor instances and infinite retry loops.
+6. Implement bounded retry logic, suitable connection timeouts, connection-pool handling, and proper resource cleanup.
+7. Return appropriate HTTP status codes when a dependency is unavailable.
+8. Ensure frontend loading indicators terminate correctly on failure.
+9. Show a useful database-unavailable message rather than fabricated data or indefinite loading.
+10. Verify the application can recover appropriately after a temporary database interruption.
+11. Preserve the current development configuration unless a demonstrated technical issue requires a change.
+12. Do not change database ports, credentials, or storage locations unnecessarily.
 
-If performance data does not exist:
+Do not mask real database failures with mock responses or hardcoded KPI values.
 
-Do NOT show empty/fake charts.
+---
 
-Instead show a clear "Performance data unavailable for this event" state or omit the section.
+## 9. Build and Security Audit
 
-----------------------------------
-EVENT COMPARISON
-----------------------------------
+After implementation, conduct a genuine audit, fix the issues found, and report the results.
 
-Create a comparison section using ONLY metrics that are available for BOTH events.
+### A. Build and code-quality checks
 
-For example:
+- Verify dependencies and the existing package-manager lockfile.
+- Run the project's available build, lint, and test scripts.
+- Check for JavaScript syntax errors and broken imports.
+- Verify frontend and backend route wiring.
+- Confirm required assets load correctly.
+- Test the login page and all four preserved dashboard routes.
+- Check browser-console errors and backend terminal errors.
+- Verify responsive behavior on desktop and mobile.
+- Confirm no unrelated functionality has been broken.
 
-Participants
-Grade coverage
-Tracks/categories
-Registration activity
+Only report a build, lint, or test as successful if the check was actually executed and passed.
 
-Do not compare incompatible metrics.
+If the project does not have a particular script or test framework, report that fact and run the closest suitable available checks.
 
-Create:
+### B. Authorization testing
 
-AUDIT_06_VISUALIZATION_PLAN.md
+Test all of the following:
 
-For every chart specify:
+- Correct KLN credentials authenticate successfully.
+- Correct Dolphin credentials authenticate successfully.
+- KLN cannot retrieve Dolphin event data.
+- Dolphin cannot retrieve KLN event data.
+- Invalid passwords are rejected.
+- Unknown usernames are rejected without account enumeration.
+- Protected routes and APIs reject unauthenticated requests.
+- Editing an event ID in a URL, query string, or API payload does not bypass event authorization.
+- The four dashboard routes retain their expected behavior for authorized users.
+- User Access cannot be used to create unauthorized cross-event access.
+- Logout invalidates the session.
+- Session expiration and rate limiting behave as configured.
+- Inputs cannot manipulate SQL queries.
 
-- Chart name
-- Chart.js chart type
-- Data source
-- SQL/API endpoint
-- X-axis
-- Y-axis
-- Dataset
-- Tooltip values
-- Why the chart is useful
-- Conditions under which the chart should be hidden
+### C. Dependency and vulnerability checks
 
-==================================================
-PHASE 7 — CURRENT DASHBOARD REFACTOR PLAN
-==================================================
+- Run the appropriate dependency vulnerability audit for the existing package manager.
+- Inspect known vulnerabilities in authentication and session-related dependencies.
+- Review session security, request validation, error handling, security headers, and CORS configuration.
+- Check for accidental credential exposure and unsafe debug settings.
+- Check whether `.env`, database backups, or other sensitive artifacts are tracked by Git.
+- Fix confirmed exploitable issues and relevant high- or critical-severity vulnerabilities within the change's scope.
+- Review dependency upgrades for compatibility before applying them.
+- Avoid destructive automatic dependency updates.
 
-Create:
+If credentials were previously committed, explain the potential exposure and recommend rotating them. Removing a file from the latest commit does not erase it from Git history.
 
-AUDIT_07_REFACTOR_PLAN.md
+Report any remaining risks or issues that cannot safely be resolved automatically.
 
-Create a table:
+### D. Database audit
 
-| Current Feature | Action | Reason |
-|----------------|--------|--------|
-| Top 3 Students | REPLACE/REMOVE | Generic/global |
-| Total Students | REPLACE | Should become event participants |
-| Participation Rate | MODIFY | Calculate for selected event only if valid |
-| Total Submissions | REPLACE | Only show event submissions if they exist |
-| Total Score | REMOVE/REPLACE | Only use actual event results |
-| Submission Intensity | REMOVE/REPLACE | Not useful without event submissions |
-| School filter | REMOVE/MODIFY | Events are already fixed |
-| School status filter | REMOVE | Not required |
-| Existing Chart.js | KEEP | Reuse |
-| Header/navigation | KEEP | Common UI |
-| Authentication | KEEP | Required infrastructure |
-| Theme | KEEP | Existing style |
-| Responsive layout | KEEP | Existing functionality |
+- Confirm the intended PostgreSQL instance and database are being used.
+- Verify both event IDs exist.
+- Verify participant-to-event mapping.
+- Compare actual participant totals against the expected 107 and 555.
+- Investigate mismatches instead of altering records to force a match.
+- Verify every relevant API applies event authorization.
+- Check for missing-data cases and correct error handling.
+- Confirm the two dashboards cannot accidentally combine their event data.
+- Verify that temporary database failures do not trigger repeated startup processes or permanent loading states.
 
-Do not blindly use this table.
+---
 
-Verify each item against the actual repository.
+## 10. End-to-End Verification
 
-==================================================
-PHASE 8 — PROPOSED APPLICATION ARCHITECTURE
-==================================================
+Use automated tests and browser testing where available.
 
-Design a clean structure such as:
+Perform these workflows:
 
-Event Insights
-│
-├── Event Selector
-│
-├── Event Overview
-│   ├── Participants
-│   ├── Status
-│   ├── Grades
-│   └── Tracks
-│
-├── Participation Analytics
-│   ├── Grade Distribution
-│   ├── Registration Trend
-│   └── Participant Breakdown
-│
-├── Event Structure
-│   └── Tracks/Categories
-│
-├── Performance Analytics
-│   └── Only if actual data exists
-│
-└── Event Comparison
-    └── Common metrics
+1. Open `http://localhost:3001/login`.
+2. Confirm the two login cards appear with the correct event names and descriptions.
+3. Log in as `admin@kln` using its configured password.
+4. Verify the resulting dashboard displays only KLN PRELIMS data.
+5. Open Admin Overview at `/admin-overview`.
+6. Open School Dashboard at `/zone-dashboard`.
+7. Open Parent View at `/parent-view`.
+8. Open User Access at `/user-management`.
+9. Verify the four routes retain their existing UI and work within the account's authorized event scope.
+10. Log out and confirm the session is invalidated.
+11. Log in as `admin@dolphin` using its configured password.
+12. Repeat the same route checks and confirm only Dolphin PRELIMS data is visible.
+13. Attempt direct access to the opposite event's protected APIs and data, and verify it is denied.
+14. Test invalid credentials and database-unavailable behavior.
+15. Refresh pages and verify that authentication and routing work as intended.
+16. Test the layout on desktop, tablet, and mobile widths.
+17. Inspect the browser console, server logs, database connectivity, and vulnerability-audit results.
 
-Reuse existing dashboard components wherever possible.
+Do not claim the tests were performed if execution was blocked by missing dependencies, unavailable services, or missing test tools.
 
-==================================================
-PHASE 9 — SQL/API PLAN
-==================================================
+---
 
-Create:
+## 11. Scope Restrictions
 
-AUDIT_08_SQL_API_PLAN.md
+This is a focused event-separation task.
 
-Define the required queries/endpoints.
+Do not:
 
-Examples:
+- Redesign the entire application.
+- Remove, rename, or break the four existing dashboard URLs.
+- Change the existing dashboards' visual style unnecessarily.
+- Remove current Admin Overview, School Dashboard, Parent View, or User Access functionality.
+- Delete or regenerate existing event or participant data.
+- Duplicate event records to simulate separate dashboards.
+- Replace PostgreSQL with a different database.
+- Introduce unnecessary frameworks or major dependencies.
+- Expose passwords in frontend code, Git, API responses, or logs.
+- Grant event administrators global super-administrator privileges.
+- Hardcode statistics or return fake success responses to hide errors.
+- Modify unrelated business logic without a demonstrated requirement.
 
-GET /api/events
-GET /api/events/:id/overview
-GET /api/events/:id/participants
-GET /api/events/:id/grades
-GET /api/events/:id/registration-trend
-GET /api/events/:id/tracks
-GET /api/events/:id/performance
+Preserve maintainability, backward compatibility, the existing Tarcin branding, and the current dashboard design.
 
-Do not create endpoints for data that doesn't exist.
+---
 
-For each endpoint provide:
+## 12. Final Deliverables and Completion Report
 
-- SQL query
-- Tables used
-- Fields returned
-- Expected output structure
-- Whether it applies to both events
+After implementation, provide a concise but complete report covering:
 
-==================================================
-PHASE 10 — DATA VALIDATION
-==================================================
+1. Files modified and the purpose of each important change.
+2. Final login URL and event-specific landing routes.
+3. Confirmation that all four existing dashboard URLs remain unchanged.
+4. Confirmation that the original UI and functionality were preserved.
+5. How the two administrator accounts are configured securely.
+6. Actual participant counts verified against the database.
+7. Database changes or migrations, if any.
+8. Build, lint, test, and dependency-audit results.
+9. Authorization tests performed and their results.
+10. Vulnerabilities discovered, fixes applied, and any remaining risks.
+11. Environment-variable requirements and local setup instructions.
+12. Any manual actions required to complete the deployment.
 
-Before proposing implementation, verify:
+Clearly distinguish **passed**, **failed**, **skipped**, and **blocked** checks.
 
-KLN:
+### Final acceptance criteria
 
-Madurai Tech Cup Demo (KLN School)
+The task is complete only when both event accounts authenticate independently; KLN PRELIMS and Dolphin PRELIMS show only their respective authorized data; the four existing routes remain unchanged and functional; their current visual style is preserved; database startup and queries work reliably; and all performed build, security, and end-to-end checks are documented honestly.
 
-Expected participant count should be checked against the actual database.
-
-Mock Exam:
-
-Mock Exam - Madurai Tech Cup
-
-Expected participant count should be checked against the actual database.
-
-Also verify:
-
-- duplicate participants
-- missing user records
-- invalid foreign keys
-- NULL values
-- inconsistent grades
-- inconsistent event relationships
-- records that appear related but cannot be reliably linked
-
-Document all findings.
-
-==================================================
-PHASE 11 — SAFE IMPLEMENTATION PLAN
-==================================================
-
-Do NOT immediately delete existing code.
-
-First create a Git branch:
-
-event-insights-refactor
-
-Then:
-
-1. Preserve existing application.
-2. Add event-specific SQL/API layer.
-3. Build the new Event Insights UI.
-4. Reuse existing cards and Chart.js styling.
-5. Connect the new UI to real database data.
-6. Test both events.
-7. Compare old and new dashboard.
-8. Only then remove obsolete platform-wide UI/code.
-9. Verify no unrelated pages break.
-10. Verify authentication/navigation still works.
-
-Do not modify unrelated pages.
-
-==================================================
-FINAL AUDIT DOCUMENT
-==================================================
-
-Finally create:
-
-EVENT_INSIGHTS_AUDIT_REPORT.md
-
-This must be understandable to a technical lead.
-
-Structure:
-
-# Codevyuh Event Insights Audit
-
-## 1. TL Requirement
-
-Explain clearly what the TL requested.
-
-## 2. Current Dashboard Analysis
-
-What the existing dashboard currently shows.
-
-## 3. Problems / Unnecessary Data
-
-Identify the platform-wide content that is not relevant to the two events.
-
-## 4. Database Findings
-
-Explain what data actually exists for:
-
-- Madurai Tech Cup Demo (KLN School)
-- Mock Exam - Madurai Tech Cup
-
-## 5. Performance Data Findings
-
-Clearly state whether:
-
-- scores
-- marks
-- results
-- submissions
-- accuracy
-- ranking
-- completion
-- time taken
-
-actually exist and are linked to these events.
-
-## 6. Recommended Event Insights
-
-List the exact KPIs and visualizations that can be safely created.
-
-## 7. Chart.js Visualization Plan
-
-Explain every proposed chart and its data source.
-
-## 8. Current UI → New UI Mapping
-
-Example:
-
-Current:
-Platform Overview
-
-New:
-Event Overview
-
-Current:
-Total Students
-
-New:
-Event Participants
-
-Current:
-Total Score
-
-New:
-Event Score
-ONLY IF REAL RESULT DATA EXISTS
-
-## 9. What to KEEP
-
-List reusable application components.
-
-## 10. What to REMOVE
-
-List completely unrelated dashboard components.
-
-## 11. What to REPLACE
-
-List components that should become event-specific.
-
-## 12. SQL/API Changes
-
-Document required queries and endpoints.
-
-## 13. Implementation Plan
-
-Give a step-by-step safe development plan.
-
-## 14. Risks / Limitations
-
-Especially missing performance/result data.
-
-## 15. Final Recommendation
-
-Provide a concise technical summary suitable for sending directly to the TL.
-
-IMPORTANT:
-
-This phase is an AUDIT ONLY.
-
-Do NOT modify files yet.
-
-Do NOT delete code.
-
-Do NOT change database records.
-
-Do NOT invent missing data.
-
-Finish the audit documents first so I can review them before implementation.
+**Execution order:** Audit the current implementation → plan the smallest safe changes → implement event-specific authentication and authorization → preserve all existing dashboard modules → repair confirmed database issues → run the build and security checks → test both complete login workflows → fix identified issues → deliver the final audit report.

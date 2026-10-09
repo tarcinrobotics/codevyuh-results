@@ -43,7 +43,6 @@ async function initDashboard() {
   try {
     eventsCache = await fetchEventList();
     autoRetryCount = 0;
-    populateEventDropdown(eventsCache);
 
     if (eventsCache.length > 0) {
       // Check URL search params for ?event=UUID, otherwise pick first event
@@ -51,6 +50,8 @@ async function initDashboard() {
       const requestedId = urlParams.get('event');
       const matched = eventsCache.find(e => e.id === requestedId);
       currentEventId = matched ? matched.id : eventsCache[0].id;
+
+      populateActiveEventHeader(eventsCache);
 
       const selectEl = document.getElementById('filter-event');
       if (selectEl) selectEl.value = currentEventId;
@@ -156,17 +157,58 @@ function setupEventListeners() {
   });
 }
 
-// ── Populate Event Dropdown ───────────────────────────────────────────────
-function populateEventDropdown(events) {
+// ── Populate Active Event Header / Dropdown ──────────────────────────────
+function populateActiveEventHeader(events) {
   const selectEl = document.getElementById('filter-event');
-  if (!selectEl) return;
+  const displayEl = document.getElementById('active-event-display');
+  if (!events || events.length === 0) return;
 
-  selectEl.innerHTML = events.map(e => `
-    <option value="${esc(e.id)}">
-      ${esc(e.name)} (${e.student_count} students)
-    </option>
-  `).join('');
+  const user = window.currentAuthUser;
+  const isSuperAdmin = user && user.role === 'super_admin';
+
+  if (selectEl) {
+    selectEl.innerHTML = events.map(e => `
+      <option value="${esc(e.id)}">
+        ${esc(e.name)} (${e.student_count} students)
+      </option>
+    `).join('');
+    if (currentEventId) selectEl.value = currentEventId;
+  }
+
+  // Active event object
+  const activeEvt = events.find(e => e.id === currentEventId) || events[0];
+
+  // For event administrators (or when single event is available/scoped)
+  if (!isSuperAdmin || events.length <= 1) {
+    if (selectEl) {
+      selectEl.style.display = 'none';
+      selectEl.disabled = true;
+    }
+    if (displayEl) {
+      displayEl.style.display = 'inline-flex';
+      if (activeEvt) {
+        displayEl.textContent = `${activeEvt.name} (${activeEvt.student_count} students)`;
+      }
+    }
+  } else {
+    // For super_admin with multiple events: allow switching via select
+    if (selectEl) {
+      selectEl.style.display = '';
+      selectEl.disabled = false;
+      selectEl.style.opacity = '1';
+      selectEl.style.cursor = 'pointer';
+    }
+    if (displayEl) {
+      displayEl.style.display = 'none';
+    }
+  }
 }
+
+window.addEventListener('auth:ready', () => {
+  if (eventsCache.length > 0) {
+    populateActiveEventHeader(eventsCache);
+  }
+});
 
 // ── Load All Dashboard Panels ─────────────────────────────────────────────
 async function loadAllPanels(eventId) {
@@ -176,6 +218,15 @@ async function loadAllPanels(eventId) {
   try {
     // Show loading skeleton states on KPI cards
     setKpiLoading(true);
+
+    // Update active event header label if display element exists
+    const displayEl = document.getElementById('active-event-display');
+    if (displayEl && eventsCache.length > 0) {
+      const cur = eventsCache.find(e => e.id === eventId) || eventsCache[0];
+      if (cur) {
+        displayEl.textContent = `${cur.name} (${cur.student_count} students)`;
+      }
+    }
 
     const [overview, grades, trend, comparison] = await Promise.all([
       fetchEventOverview(eventId),
@@ -454,6 +505,10 @@ function showErrorState(msg) {
   const selectEl = document.getElementById('filter-event');
   if (selectEl && (!selectEl.value || selectEl.options.length <= 1)) {
     selectEl.innerHTML = `<option value="">Database offline — click Retry</option>`;
+  }
+  const displayEl = document.getElementById('active-event-display');
+  if (displayEl && (!eventsCache || eventsCache.length === 0)) {
+    displayEl.textContent = 'Database offline';
   }
 
   // Remove skeleton state from KPI cards and show fallback dash

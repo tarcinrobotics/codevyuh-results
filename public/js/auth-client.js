@@ -6,18 +6,31 @@
     return data.user;
   }
 
-  function roleLabel(role) {
+  function roleLabel(user) {
+    if (!user) return 'User';
+    if (typeof user === 'string') {
+      return {
+        super_admin: 'Super Admin',
+        event_admin: 'Event Admin',
+        school_admin: 'School Admin',
+        school_management: 'School Management',
+        parent: 'Parent',
+      }[user] || user;
+    }
+    if (user.role === 'event_admin') {
+      return user.eventName ? `${user.eventName} Admin` : 'Event Admin';
+    }
     return {
       super_admin: 'Super Admin',
       school_admin: 'School Admin',
       school_management: 'School Management',
       parent: 'Parent',
-    }[role] || role;
+    }[user.role] || user.role;
   }
 
   function allowedRoutes(role) {
     const common = new Set([]);
-    if (role === 'super_admin') {
+    if (role === 'super_admin' || role === 'event_admin') {
       return new Set(['/admin-overview', '/zone-dashboard', '/parent-view', '/user-management']);
     }
     if (role === 'school_admin') {
@@ -33,11 +46,13 @@
   }
 
   async function logout() {
-    await fetch('/api/auth/logout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-    });
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+      });
+    } catch (_) {}
     window.location.href = '/login';
   }
 
@@ -47,7 +62,7 @@
 
     right.querySelectorAll('[data-auth-control]').forEach((el) => el.remove());
 
-    if (user.role === 'super_admin') {
+    if (user.role === 'super_admin' || user.role === 'event_admin') {
       const manage = document.createElement('a');
       manage.href = '/user-management';
       manage.className = 'topbar-btn';
@@ -70,7 +85,7 @@
       <div class="user-chip-avatar">${(user.displayName || user.username || '?').charAt(0).toUpperCase()}</div>
       <div class="user-chip-meta">
         <span class="user-chip-name">${user.displayName || user.username}</span>
-        <span class="user-chip-role">${roleLabel(user.role)}</span>
+        <span class="user-chip-role">${roleLabel(user)}</span>
       </div>
     `;
 
@@ -87,6 +102,13 @@
       if (!href || href.startsWith('http')) return;
       if (!allow.has(href)) {
         link.style.display = 'none';
+      }
+    });
+
+    document.querySelectorAll('.route-select option').forEach((opt) => {
+      const val = opt.getAttribute('value');
+      if (val && !allow.has(val)) {
+        opt.remove();
       }
     });
   }

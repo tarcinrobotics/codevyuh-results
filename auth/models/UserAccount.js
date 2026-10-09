@@ -15,12 +15,22 @@ const userAccountSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['super_admin', 'school_admin', 'school_management', 'parent'],
+    enum: ['super_admin', 'school_admin', 'school_management', 'parent', 'event_admin'],
     required: true,
   },
   passwordHash: {
     type: String,
     required: true,
+  },
+  eventId: {
+    type: String,
+    trim: true,
+    default: null,
+  },
+  eventName: {
+    type: String,
+    trim: true,
+    default: null,
   },
   schoolName: {
     type: String,

@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login — Velammal Dashboard Platform</title>
+  <title>Login — Codevyuh Event Insights Dashboard</title>
+  <meta name="description" content="Secure login for KLN PRELIMS and Dolphin PRELIMS competition dashboards." />
   <script>
     (() => {
       const stored = localStorage.getItem('dashboard-theme');
@@ -20,362 +21,848 @@
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <style>
     body {
-      display: grid;
-      place-items: center;
-      padding: 32px;
-      background:
-        radial-gradient(circle at top left, rgba(46,121,183,0.12), transparent 28%),
-        radial-gradient(circle at bottom right, rgba(16,185,129,0.08), transparent 30%),
-        var(--bg-base);
-    }
-    .login-shell {
-      width: min(980px, 100%);
-      display: grid;
-      grid-template-columns: 1.1fr 0.9fr;
-      border-radius: 28px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow-panel);
-      background: var(--bg-surface);
-    }
-    .login-brand {
-      padding: 44px;
-      background:
-        linear-gradient(155deg, rgba(30,111,220,0.18), rgba(12,22,41,0.08)),
-        var(--bg-panel);
-      border-right: 1px solid var(--border);
+      min-height: 100vh;
+      margin: 0;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      min-height: 620px;
+      padding: clamp(14px, 2.4vh, 26px) clamp(18px, 3.2vw, 42px);
+      background:
+        radial-gradient(circle at 14% 18%, rgba(37, 99, 235, 0.18) 0%, transparent 40%),
+        radial-gradient(circle at 86% 82%, rgba(6, 182, 212, 0.15) 0%, transparent 40%),
+        radial-gradient(ellipse at 50% 50%, rgba(15, 23, 42, 0.8) 0%, transparent 75%),
+        #060c18;
+      color: #f8fafc;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      box-sizing: border-box;
+      overflow-x: hidden;
     }
-    .login-brand h1 {
-      font-size: clamp(2rem, 4vw, 3.2rem);
-      line-height: 0.98;
-      letter-spacing: -0.05em;
-      margin-bottom: 14px;
+
+    *, *::before, *::after {
+      box-sizing: border-box;
     }
-    .login-brand p {
-      color: var(--text-secondary);
-      max-width: 460px;
-      font-size: 0.98rem;
-    }
-    .login-badges {
-      display: grid;
-      gap: 12px;
-      margin-top: 28px;
-    }
-    .login-badge {
+
+    .login-container {
+      width: min(1220px, 100%);
+      margin: auto;
       display: flex;
-      gap: 12px;
-      align-items: flex-start;
-      padding: 14px 16px;
+      flex-direction: column;
+      gap: clamp(12px, 1.9vh, 20px);
+    }
+
+    /* ── Header Bar ───────────────────────────────────────── */
+    .login-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: clamp(10px, 1.3vh, 14px) clamp(18px, 2.2vw, 24px);
       border-radius: 16px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--border);
+      background: rgba(13, 22, 41, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.45);
     }
-    .login-badge svg {
-      width: 18px;
-      height: 18px;
-      color: var(--brand-accent);
-      flex-shrink: 0;
-      margin-top: 2px;
+
+    .login-header-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
-    .login-badge strong {
-      display: block;
-      color: var(--text-primary);
-      margin-bottom: 2px;
-      font-size: 0.82rem;
+
+    .login-brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.3), rgba(6, 182, 212, 0.3));
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #38bdf8;
+    }
+
+    .login-header-title {
+      font-size: 1.08rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      margin: 0;
+    }
+
+    .login-header-sub {
+      font-size: 0.72rem;
+      color: #64748b;
       text-transform: uppercase;
       letter-spacing: 0.08em;
+      font-weight: 600;
     }
-    .login-badge span {
-      color: var(--text-secondary);
-      font-size: 0.9rem;
+
+    .login-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
     }
-    .login-panel {
-      padding: 44px;
+
+    /* ── Intro Title ──────────────────────────────────────── */
+    .login-intro {
+      text-align: center;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .login-intro-kicker {
+      font-size: 0.74rem;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      color: #38bdf8;
+      font-weight: 700;
+      margin-bottom: 3px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .login-intro-desc {
+      color: #94a3b8;
+      font-size: 0.88rem;
+      line-height: 1.45;
+      margin: 0;
+    }
+
+    /* ── Side-by-Side Cards Grid ─────────────────────────── */
+    .event-cards-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(18px, 2.5vw, 30px);
+      align-items: stretch;
+    }
+
+    @media (max-width: 880px) {
+      .event-cards-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+    }
+
+    .event-login-card {
+      background: linear-gradient(160deg, rgba(15, 23, 42, 0.9) 0%, rgba(10, 17, 33, 0.96) 100%);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: clamp(20px, 2.6vh, 28px) clamp(22px, 2.5vw, 32px);
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      gap: 18px;
-      background: var(--bg-surface);
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s ease, box-shadow 0.25s ease;
     }
-    .login-top {
+
+    .event-login-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--card-accent-gradient);
+    }
+
+    .event-login-card.card-kln {
+      --card-accent-gradient: linear-gradient(90deg, #2563eb, #3b82f6, #60a5fa);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.6), 0 0 35px -8px rgba(37, 99, 235, 0.22);
+    }
+
+    .event-login-card.card-dolphin {
+      --card-accent-gradient: linear-gradient(90deg, #0284c7, #06b6d4, #22d3ee);
+      border: 1px solid rgba(6, 182, 212, 0.3);
+      box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.6), 0 0 35px -8px rgba(6, 182, 212, 0.22);
+    }
+
+    .event-login-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .event-login-card.card-kln:hover {
+      border-color: rgba(96, 165, 250, 0.55);
+      box-shadow: 0 22px 50px -10px rgba(0, 0, 0, 0.7), 0 0 45px -5px rgba(37, 99, 235, 0.35);
+    }
+
+    .event-login-card.card-dolphin:hover {
+      border-color: rgba(56, 189, 248, 0.55);
+      box-shadow: 0 22px 50px -10px rgba(0, 0, 0, 0.7), 0 0 45px -5px rgba(6, 182, 212, 0.35);
+    }
+
+    .card-top {
+      margin-bottom: clamp(10px, 1.4vh, 16px);
+    }
+
+    .card-icon-strip {
+      display: flex;
+      align-items: center;
+      margin-bottom: clamp(6px, 1.1vh, 10px);
+    }
+
+    .card-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, rgba(37, 99, 235, 0.22), rgba(59, 130, 246, 0.08));
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      color: #60a5fa;
+    }
+
+    .card-dolphin .card-icon-box {
+      background: linear-gradient(135deg, rgba(6, 182, 212, 0.22), rgba(14, 165, 233, 0.08));
+      border-color: rgba(6, 182, 212, 0.35);
+      color: #38bdf8;
+    }
+
+    .card-title {
+      font-size: 1.45rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 2px;
+      color: #ffffff;
+    }
+
+    .card-subtitle {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #60a5fa;
+      margin-bottom: 5px;
+      display: block;
+    }
+
+    .card-dolphin .card-subtitle {
+      color: #38bdf8;
+    }
+
+    .card-description {
+      font-size: 0.84rem;
+      color: #94a3b8;
+      line-height: 1.4;
+      margin: 0;
+    }
+
+    /* ── Form Styles ──────────────────────────────────────── */
+    .login-form {
+      display: grid;
+      gap: clamp(10px, 1.3vh, 14px);
+    }
+
+    .form-group {
+      display: grid;
+      gap: 5px;
+    }
+
+    .form-label {
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 11px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(8, 14, 28, 0.85);
+      color: #f8fafc;
+      font-family: inherit;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .card-kln .form-input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
+      background: rgba(11, 20, 42, 0.98);
+    }
+
+    .card-dolphin .form-input:focus {
+      border-color: #06b6d4;
+      box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.22);
+      background: rgba(11, 20, 42, 0.98);
+    }
+
+    /* Neutralize browser autofill white background */
+    .form-input:-webkit-autofill,
+    .form-input:-webkit-autofill:hover,
+    .form-input:-webkit-autofill:focus,
+    .form-input:-webkit-autofill:active {
+      -webkit-box-shadow: 0 0 0 1000px #080e1c inset !important;
+      -webkit-text-fill-color: #f8fafc !important;
+      caret-color: #f8fafc !important;
+      transition: background-color 5000s ease-in-out 0s;
+    }
+
+    .password-input {
+      padding-right: 44px;
+    }
+
+    .btn-pwd-toggle {
+      position: absolute;
+      top: 50%;
+      right: 7px;
+      transform: translateY(-50%);
+      width: 32px;
+      height: 32px;
+      border-radius: 7px;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: color 0.2s ease, background 0.2s ease;
+    }
+
+    .btn-pwd-toggle:hover {
+      color: #f8fafc;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .card-error {
+      min-height: 16px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #ef4444;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .card-submit-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      width: 100%;
+      padding: 11px 18px;
+      border-radius: 12px;
+      border: none;
+      font-family: inherit;
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #ffffff;
+      cursor: pointer;
+      letter-spacing: -0.01em;
+      transition: transform 0.15s ease, filter 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card-kln .card-submit-btn {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      box-shadow: 0 4px 18px rgba(37, 99, 235, 0.38);
+      border: 1px solid rgba(96, 165, 250, 0.25);
+    }
+
+    .card-dolphin .card-submit-btn {
+      background: linear-gradient(135deg, #0284c7 0%, #0891b2 100%);
+      box-shadow: 0 4px 18px rgba(2, 132, 199, 0.38);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+    }
+
+    .card-submit-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: brightness(1.1);
+    }
+
+    .card-submit-btn:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .card-submit-btn:disabled {
+      opacity: 0.65;
+      cursor: wait;
+      transform: none;
+    }
+
+    /* ── Footer ───────────────────────────────────────────── */
+    .login-footer {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
       gap: 12px;
+      padding: 10px 22px;
+      border-radius: 14px;
+      background: rgba(13, 22, 41, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 0.78rem;
+      color: #64748b;
     }
-    .login-kicker {
-      font-size: 0.76rem;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--text-muted);
-      font-weight: 700;
-    }
-    .login-panel h2 {
-      font-size: 2rem;
-      letter-spacing: -0.04em;
-    }
-    .login-panel p {
-      color: var(--text-secondary);
-    }
-    .login-summary {
-      display: grid;
-      gap: 10px;
-      padding: 16px 18px;
-      border-radius: 16px;
-      background: linear-gradient(180deg, rgba(30,111,220,0.08), rgba(30,111,220,0.03));
-      border: 1px solid var(--border);
-    }
-    .login-summary-title {
-      font-size: 0.76rem;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--text-muted);
-      font-weight: 700;
-    }
-    .login-summary-items {
-      display: grid;
-      gap: 8px;
-    }
-    .login-summary-item {
+
+    .login-security-badges {
       display: flex;
       align-items: center;
-      gap: 10px;
-      color: var(--text-secondary);
-      font-size: 0.88rem;
+      gap: 18px;
+      flex-wrap: wrap;
     }
-    .login-summary-item svg {
-      width: 16px;
-      height: 16px;
-      color: var(--brand-accent);
-      flex-shrink: 0;
-    }
-    .form-grid {
-      display: grid;
-      gap: 14px;
-      margin-top: 8px;
-    }
-    .field {
-      display: grid;
+
+    .sec-badge {
+      display: inline-flex;
+      align-items: center;
       gap: 6px;
     }
-    .field label {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--text-secondary);
+
+    .sec-badge svg {
+      color: #10b981;
+      width: 15px;
+      height: 15px;
     }
-    .password-wrap {
-      position: relative;
-    }
-    .field input {
-      width: 100%;
-      padding: 12px 14px;
-      border-radius: 12px;
-      border: 1px solid var(--border);
-      background: var(--bg-input);
-      color: var(--text-primary);
-      font: inherit;
-      outline: none;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    }
-    .password-wrap input {
-      padding-right: 48px;
-    }
-    .field input:focus {
-      border-color: var(--border-active);
-      box-shadow: 0 0 0 3px rgba(30,111,220,0.12);
-    }
-    .password-toggle {
-      position: absolute;
-      top: 50%;
-      right: 10px;
-      transform: translateY(-50%);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 32px;
-      height: 32px;
-      border-radius: 10px;
-      border: 1px solid transparent;
+
+    .btn-superadmin-toggle {
       background: transparent;
-      color: var(--text-muted);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #94a3b8;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
       cursor: pointer;
-      transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-    }
-    .password-toggle:hover {
-      background: rgba(30,111,220,0.08);
-      color: var(--text-primary);
-      border-color: var(--border);
-    }
-    .password-toggle svg {
-      width: 16px;
-      height: 16px;
-    }
-    .login-submit {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      gap: 10px;
-      width: 100%;
-      padding: 13px 16px;
-      border-radius: 12px;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-superadmin-toggle:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #f8fafc;
+      border-color: rgba(56, 189, 248, 0.35);
+    }
+
+    /* ── Modal for Super Admin ────────────────────────────── */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(6px);
+      z-index: 1000;
+      place-items: center;
+      padding: 20px;
+    }
+
+    .modal-backdrop.active {
+      display: grid;
+    }
+
+    .superadmin-modal-card {
+      width: min(440px, 100%);
+      background: rgba(15, 23, 42, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: 0 24px 50px rgba(0, 0, 0, 0.6);
+    }
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-close-modal {
+      background: transparent;
       border: none;
-      background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
-      color: #fff;
-      font: inherit;
-      font-weight: 700;
+      color: #94a3b8;
       cursor: pointer;
+      font-size: 1.2rem;
+      display: flex;
+      padding: 4px;
     }
-    .login-submit:disabled {
-      opacity: 0.7;
-      cursor: wait;
-    }
-    .login-error {
-      min-height: 20px;
-      color: var(--color-down);
-      font-size: 0.82rem;
-      font-weight: 600;
-    }
-    @media (max-width: 900px) {
-      .login-shell { grid-template-columns: 1fr; }
-      .login-brand { min-height: auto; }
+
+    .btn-close-modal:hover {
+      color: #ffffff;
     }
   </style>
 </head>
 <body>
-  <div class="login-shell">
-    <section class="login-brand">
-      <div>
-        <div class="login-kicker">Velammal Dashboard Platform</div>
-        <h1>Secure Access for Every Role.</h1>
-        <p>Sign in with your assigned platform account to open only the dashboards and reports allowed for your role.</p>
-        <div class="login-badges">
-          <div class="login-badge">
-            <i data-lucide="shield-check"></i>
-            <div><strong>Super Admin</strong><span>Full platform access and account provisioning.</span></div>
-          </div>
-          <div class="login-badge">
-            <i data-lucide="school"></i>
-            <div><strong>School Admin</strong><span>School dashboard access for operational school monitoring.</span></div>
-          </div>
-          <div class="login-badge">
-            <i data-lucide="layout-dashboard"></i>
-            <div><strong>School Management</strong><span>Admin overview access for platform-level review.</span></div>
-          </div>
-          <div class="login-badge">
-            <i data-lucide="users"></i>
-            <div><strong>Parent</strong><span>Parent view access for student performance tracking and reports.</span></div>
-          </div>
+  <div class="login-container">
+    <!-- Topbar Brand Strip -->
+    <header class="login-header-bar" role="banner">
+      <div class="login-header-brand">
+        <div class="login-brand-icon" aria-hidden="true">
+          <i data-lucide="trophy"></i>
         </div>
-      </div>
-      <div class="powered-by" style="width:max-content">
-        <span class="powered-by-text">Powered by</span>
-        <img src="/tarcin-logo.png" alt="Tarcin Robotics" class="powered-by-logo" />
-      </div>
-    </section>
-
-    <section class="login-panel">
-      <div class="login-top">
         <div>
-          <div class="login-kicker">Platform Login</div>
-          <h2>Welcome Back</h2>
+          <h2 class="login-header-title">Codevyuh Event Insights</h2>
+          <span class="login-header-sub">Assessment &amp; Competition Platform</span>
         </div>
+      </div>
+
+      <div class="login-header-actions">
         <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch theme">
           <svg data-theme-icon viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
           <span data-theme-label>Dark Mode</span>
         </button>
-      </div>
-      <p>Use the credentials issued by the super admin. Your login automatically opens the correct dashboard.</p>
-
-      <div class="login-summary">
-        <div class="login-summary-title">Access Policy</div>
-        <div class="login-summary-items">
-          <div class="login-summary-item"><i data-lucide="shield"></i><span>Each account opens only the dashboard allowed for its role.</span></div>
-          <div class="login-summary-item"><i data-lucide="lock-keyhole"></i><span>Credentials are centrally managed through the user access console.</span></div>
-          <div class="login-summary-item"><i data-lucide="sparkles"></i><span>Theme preference and secure session access are remembered automatically.</span></div>
+        <div class="powered-by">
+          <span class="powered-by-text">Powered by</span>
+          <img src="/tarcin-logo.png" alt="Tarcin Robotics" class="powered-by-logo" />
         </div>
       </div>
+    </header>
 
-      <form id="login-form" class="form-grid">
-        <div class="field">
-          <label for="username">Username</label>
-          <input id="username" name="username" autocomplete="username" required />
-        </div>
-        <div class="field">
-          <label for="password">Password</label>
-          <div class="password-wrap">
-            <input id="password" name="password" type="password" autocomplete="current-password" required />
-            <button class="password-toggle" id="password-toggle" type="button" aria-label="Show password">
-              <i data-lucide="eye"></i>
-            </button>
+    <!-- Intro Header -->
+    <div class="login-intro">
+      <div class="login-intro-kicker">Secure Event Authentication</div>
+      <p class="login-intro-desc">Log in with your event credentials to access authorized participant rosters, grade analytics, and live performance metrics.</p>
+    </div>
+
+    <!-- Two Side-by-Side Event Cards -->
+    <main class="event-cards-grid">
+      <!-- ── CARD A: KLN PRELIMS ── -->
+      <section class="event-login-card card-kln" aria-labelledby="heading-kln">
+        <div class="card-top">
+          <div class="card-icon-strip">
+            <div class="card-icon-box" aria-hidden="true">
+              <i data-lucide="graduation-cap"></i>
+            </div>
           </div>
+          <h2 class="card-title" id="heading-kln">KLN PRELIMS</h2>
+          <span class="card-subtitle">KLN Vidyalaya CBSE Senior Secondary School</span>
+          <p class="card-description">Access the KLN PRELIMS dashboard and event insights.</p>
         </div>
-        <div class="login-error" id="login-error"></div>
-        <button class="login-submit" id="login-submit" type="submit">
+
+        <form id="form-kln" class="login-form" autocomplete="off" novalidate>
+          <!-- Decoy inputs to defeat browser password manager autofill -->
+          <input type="text" style="display:none!important" aria-hidden="true" tabindex="-1" />
+          <input type="password" style="display:none!important" aria-hidden="true" tabindex="-1" />
+
+          <div class="form-group">
+            <label class="form-label" for="kln-username">Username</label>
+            <input
+              id="kln-username"
+              name="kln_auth_user"
+              class="form-input form-input-user"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              readonly
+              onfocus="this.removeAttribute('readonly')"
+              onmousedown="this.removeAttribute('readonly')"
+              required
+              aria-required="true"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="kln-password">Password</label>
+            <div class="input-wrap">
+              <input
+                id="kln-password"
+                name="kln_auth_pass"
+                class="form-input password-input form-input-pass"
+                type="password"
+                autocomplete="new-password"
+                placeholder="••••••••••••"
+                readonly
+                onfocus="this.removeAttribute('readonly')"
+                onmousedown="this.removeAttribute('readonly')"
+                required
+                aria-required="true"
+              />
+              <button
+                type="button"
+                class="btn-pwd-toggle"
+                data-target="kln-password"
+                aria-label="Show password"
+              >
+                <i data-lucide="eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="card-error" id="kln-error" role="alert" aria-live="polite"></div>
+
+          <button id="kln-submit" class="card-submit-btn" type="submit">
+            <i data-lucide="log-in"></i>
+            <span>Login to KLN PRELIMS</span>
+          </button>
+        </form>
+      </section>
+
+      <!-- ── CARD B: Dolphin PRELIMS ── -->
+      <section class="event-login-card card-dolphin" aria-labelledby="heading-dolphin">
+        <div class="card-top">
+          <div class="card-icon-strip">
+            <div class="card-icon-box" aria-hidden="true">
+              <i data-lucide="award"></i>
+            </div>
+          </div>
+          <h2 class="card-title" id="heading-dolphin">Dolphin PRELIMS</h2>
+          <span class="card-subtitle">Madurai Tech Cup Regional Mock Exam</span>
+          <p class="card-description">Access the Dolphin PRELIMS dashboard and event insights.</p>
+        </div>
+
+        <form id="form-dolphin" class="login-form" autocomplete="off" novalidate>
+          <!-- Decoy inputs to defeat browser password manager autofill -->
+          <input type="text" style="display:none!important" aria-hidden="true" tabindex="-1" />
+          <input type="password" style="display:none!important" aria-hidden="true" tabindex="-1" />
+
+          <div class="form-group">
+            <label class="form-label" for="dolphin-username">Username</label>
+            <input
+              id="dolphin-username"
+              name="dolphin_auth_user"
+              class="form-input form-input-user"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              readonly
+              onfocus="this.removeAttribute('readonly')"
+              onmousedown="this.removeAttribute('readonly')"
+              required
+              aria-required="true"
+            />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="dolphin-password">Password</label>
+            <div class="input-wrap">
+              <input
+                id="dolphin-password"
+                name="dolphin_auth_pass"
+                class="form-input password-input form-input-pass"
+                type="password"
+                autocomplete="new-password"
+                placeholder="••••••••••••"
+                readonly
+                onfocus="this.removeAttribute('readonly')"
+                onmousedown="this.removeAttribute('readonly')"
+                required
+                aria-required="true"
+              />
+              <button
+                type="button"
+                class="btn-pwd-toggle"
+                data-target="dolphin-password"
+                aria-label="Show password"
+              >
+                <i data-lucide="eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="card-error" id="dolphin-error" role="alert" aria-live="polite"></div>
+
+          <button id="dolphin-submit" class="card-submit-btn" type="submit">
+            <i data-lucide="log-in"></i>
+            <span>Login to Dolphin PRELIMS</span>
+          </button>
+        </form>
+      </section>
+    </main>
+
+    <!-- Bottom Security & Super Admin Strip -->
+    <footer class="login-footer">
+      <div class="login-security-badges">
+        <span class="sec-badge"><i data-lucide="shield-check"></i> 256-Bit TLS Encryption</span>
+        <span class="sec-badge"><i data-lucide="lock"></i> Event Data Strictly Isolated</span>
+        <span class="sec-badge"><i data-lucide="cpu"></i> Live PostgreSQL Connection</span>
+      </div>
+
+      <button id="btn-toggle-superadmin" class="btn-superadmin-toggle" type="button">
+        <i data-lucide="shield"></i>
+        <span>Platform Super Admin</span>
+      </button>
+    </footer>
+  </div>
+
+  <!-- ── Super Admin Modal ── -->
+  <div class="modal-backdrop" id="superadmin-modal" role="dialog" aria-modal="true" aria-labelledby="modal-superadmin-title">
+    <div class="superadmin-modal-card">
+      <div class="modal-head">
+        <div class="modal-title" id="modal-superadmin-title">
+          <i data-lucide="shield-alert" style="color:#38bdf8"></i>
+          <span>Super Admin Sign In</span>
+        </div>
+        <button class="btn-close-modal" id="btn-close-modal" aria-label="Close modal">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <form id="form-superadmin" class="login-form">
+        <div class="form-group">
+          <label class="form-label" for="super-username">Super Admin Username</label>
+          <input id="super-username" name="username" class="form-input" type="text" autocomplete="username" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="super-password">Password</label>
+          <input id="super-password" name="password" class="form-input" type="password" autocomplete="current-password" required />
+        </div>
+        <div class="card-error" id="super-error"></div>
+        <button id="super-submit" class="card-submit-btn" style="background:linear-gradient(135deg,#4f46e5,#3b82f6)" type="submit">
           <i data-lucide="log-in"></i>
-          <span>Sign In</span>
+          <span>Authenticate as Super Admin</span>
         </button>
       </form>
-    </section>
+    </div>
   </div>
 
   <script src="/js/theme.js"></script>
   <script>
     if (window.lucide) lucide.createIcons();
 
-    const form = document.getElementById('login-form');
-    const errorEl = document.getElementById('login-error');
-    const submitBtn = document.getElementById('login-submit');
-    const passwordInput = document.getElementById('password');
-    const passwordToggle = document.getElementById('password-toggle');
-    const params = new URLSearchParams(window.location.search);
-    const returnTo = params.get('returnTo') || '';
-
-    function updatePasswordToggle() {
-      const shown = passwordInput.type === 'text';
-      passwordToggle.setAttribute('aria-label', shown ? 'Hide password' : 'Show password');
-      passwordToggle.innerHTML = shown
-        ? '<i data-lucide="eye-off"></i>'
-        : '<i data-lucide="eye"></i>';
-      if (window.lucide) lucide.createIcons();
+    // Aggressive autofill prevention & input clearance
+    function wipeCredentialFields() {
+      document.querySelectorAll('.form-input').forEach(input => {
+        input.value = '';
+      });
     }
-
-    passwordToggle.addEventListener('click', () => {
-      passwordInput.type = passwordInput.type === 'password' ? 'text' : 'password';
-      updatePasswordToggle();
+    wipeCredentialFields();
+    window.addEventListener('DOMContentLoaded', wipeCredentialFields);
+    window.addEventListener('load', () => {
+      wipeCredentialFields();
+      setTimeout(wipeCredentialFields, 40);
+      setTimeout(wipeCredentialFields, 120);
+      setTimeout(wipeCredentialFields, 300);
+      setTimeout(wipeCredentialFields, 700);
     });
 
-    updatePasswordToggle();
+    // Clear any active session when visiting login page
+    try {
+      fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => {});
+    } catch (_) {}
 
-    form.addEventListener('submit', async (event) => {
-      event.preventDefault();
+    // Password Show/Hide Toggles
+    document.querySelectorAll('.btn-pwd-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-target');
+        const input = document.getElementById(targetId);
+        if (!input) return;
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        btn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+        btn.innerHTML = isPassword
+          ? '<i data-lucide="eye-off"></i>'
+          : '<i data-lucide="eye"></i>';
+        if (window.lucide) lucide.createIcons();
+      });
+    });
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const returnTo = urlParams.get('returnTo') || '';
+
+    // Generic Login Submit Handler
+    async function handleLoginSubmit({ formEl, errorEl, submitBtn, targetEvent }) {
+      const userEl = formEl.querySelector('.form-input-user') || formEl.querySelector('input[type="text"]');
+      const passEl = formEl.querySelector('.form-input-pass') || formEl.querySelector('input[type="password"]');
+      const username = userEl ? userEl.value.trim() : '';
+      const password = passEl ? passEl.value : '';
+
       errorEl.textContent = '';
-      submitBtn.disabled = true;
+      if (!username || !password) {
+        errorEl.textContent = 'Please enter both username and password.';
+        return;
+      }
 
-      const payload = {
-        username: form.username.value,
-        password: form.password.value,
-        returnTo,
-      };
+      submitBtn.disabled = true;
+      const originalText = submitBtn.innerHTML;
+      submitBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i><span>Signing In…</span>';
+      if (window.lucide) lucide.createIcons();
 
       try {
+        const payload = {
+          username,
+          password,
+          targetEvent,
+          returnTo,
+        };
+
         const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
           body: JSON.stringify(payload),
         });
+
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Login failed');
+        if (!res.ok) {
+          throw new Error(data.error || 'Authentication failed. Please check your credentials.');
+        }
+
         window.location.href = data.redirectTo || '/';
       } catch (err) {
-        errorEl.textContent = err.message;
+        errorEl.textContent = err.message || 'Login service unavailable. Please retry.';
       } finally {
         submitBtn.disabled = false;
+        submitBtn.innerHTML = originalText;
+        if (window.lucide) lucide.createIcons();
       }
+    }
+
+    // Card A: KLN PRELIMS
+    const formKln = document.getElementById('form-kln');
+    formKln.addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleLoginSubmit({
+        formEl: formKln,
+        errorEl: document.getElementById('kln-error'),
+        submitBtn: document.getElementById('kln-submit'),
+        targetEvent: '0542016a-b443-421e-9ae0-a4787697b945',
+      });
+    });
+
+    // Card B: Dolphin PRELIMS
+    const formDolphin = document.getElementById('form-dolphin');
+    formDolphin.addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleLoginSubmit({
+        formEl: formDolphin,
+        errorEl: document.getElementById('dolphin-error'),
+        submitBtn: document.getElementById('dolphin-submit'),
+        targetEvent: 'e4bd56c6-924d-49bb-9c3a-e2c74eab9f89',
+      });
+    });
+
+    // Super Admin Modal
+    const modalBackdrop = document.getElementById('superadmin-modal');
+    const btnToggleSuper = document.getElementById('btn-toggle-superadmin');
+    const btnCloseModal = document.getElementById('btn-close-modal');
+    const formSuper = document.getElementById('form-superadmin');
+
+    btnToggleSuper.addEventListener('click', () => modalBackdrop.classList.add('active'));
+    btnCloseModal.addEventListener('click', () => modalBackdrop.classList.remove('active'));
+    modalBackdrop.addEventListener('click', (e) => {
+      if (e.target === modalBackdrop) modalBackdrop.classList.remove('active');
+    });
+
+    formSuper.addEventListener('submit', (e) => {
+      e.preventDefault();
+      handleLoginSubmit({
+        formEl: formSuper,
+        errorEl: document.getElementById('super-error'),
+        submitBtn: document.getElementById('super-submit'),
+        targetEvent: '',
+      });
     });
   </script>
 </body>

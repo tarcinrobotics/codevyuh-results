@@ -1,13 +1,28 @@
 /**
  * routes/event-insights.js
  * API endpoints for Event Insights dashboard
- * Backed by tested SQL queries from AUDIT_08_SQL_API_PLAN.md
+ * Enforces event-level permissions and displays KLN PRELIMS and Dolphin PRELIMS
  */
 
 const express = require('express');
 const router = express.Router();
 const { query } = require('../db');
-const { getDatabaseStatus, getLiveDatabaseStatus } = require('../db-supervisor');
+const { getLiveDatabaseStatus } = require('../db-supervisor');
+
+const EVENT_DISPLAY_NAMES = {
+  '0542016a-b443-421e-9ae0-a4787697b945': 'KLN PRELIMS',
+  'e4bd56c6-924d-49bb-9c3a-e2c74eab9f89': 'Dolphin PRELIMS',
+};
+
+function formatEventRow(row) {
+  if (!row) return row;
+  const displayName = EVENT_DISPLAY_NAMES[row.id] || row.name;
+  return {
+    ...row,
+    name: displayName,
+    display_name: displayName,
+  };
+}
 
 function handleDbError(res, err, action) {
   console.error(`[Event Insights] ${action} error:`, err.message || err);
@@ -35,6 +50,18 @@ function handleDbError(res, err, action) {
   });
 }
 
+function authorizeEventParam(req, res, next) {
+  const user = req.authUser;
+  const eventId = req.params.id;
+  if (!user) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  if (user.role !== 'super_admin' && user.eventId && user.eventId !== eventId) {
+    return res.status(403).json({ error: 'Access denied: You do not have permission to access this event' });
+  }
+  next();
+}
+
 /**
  * GET /api/event-insights/health
  * Returns dedicated database health check for Event Insights subsystem.
@@ -54,6 +81,15 @@ router.get('/health', async (req, res) => {
  */
 router.get('/events', async (req, res) => {
   try {
+    const user = req.authUser;
+    let whereClause = `WHERE e.id IN ('0542016a-b443-421e-9ae0-a4787697b945', 'e4bd56c6-924d-49bb-9c3a-e2c74eab9f89')`;
+    let params = [];
+
+    if (user && user.role !== 'super_admin' && user.eventId) {
+      whereClause = `WHERE e.id = $1::text`;
+      params = [user.eventId];
+    }
+
     const sql = `
       SELECT 
         e.id, 
@@ -64,12 +100,12 @@ router.get('/events', async (req, res) => {
         COUNT(ue.id)::int AS student_count
       FROM "Event" e
       LEFT JOIN "UserEvent" ue ON ue."eventId" = e.id
-      WHERE e.name IN ('Madurai Tech Cup Demo (KLN School)', 'Mock Exam - Madurai Tech Cup')
+      ${whereClause}
       GROUP BY e.id, e.name, e.slug, e.status, e."eventType", e."createdAt"
       ORDER BY e."createdAt" DESC;
     `;
-    const result = await query(sql);
-    res.json(result.rows);
+    const result = await query(sql, params);
+    res.json(result.rows.map(formatEventRow));
   } catch (err) {
     handleDbError(res, err, 'fetch events');
   }
@@ -77,11 +113,20 @@ router.get('/events', async (req, res) => {
 
 /**
  * GET /api/event-insights/comparison
- * Returns comparative metrics across both events for side-by-side benchmarking.
+ * Returns comparative metrics across events for benchmarking.
  * (Mounted before /:id routes so "comparison" is not parsed as an id)
  */
 router.get('/comparison', async (req, res) => {
   try {
+    const user = req.authUser;
+    let whereClause = `WHERE e.id IN ('0542016a-b443-421e-9ae0-a4787697b945', 'e4bd56c6-924d-49bb-9c3a-e2c74eab9f89')`;
+    let params = [];
+
+    if (user && user.role !== 'super_admin' && user.eventId) {
+      whereClause = `WHERE e.id = $1::text`;
+      params = [user.eventId];
+    }
+
     const sql = `
       SELECT 
         e.id,
@@ -96,12 +141,12 @@ router.get('/comparison', async (req, res) => {
       JOIN "UserEvent" ue ON ue."eventId" = e.id
       JOIN "User" u ON u.id = ue."userId"
       LEFT JOIN "School" s ON s.id = u."schoolId"
-      WHERE e.name IN ('Madurai Tech Cup Demo (KLN School)', 'Mock Exam - Madurai Tech Cup')
+      ${whereClause}
       GROUP BY e.id, e.name, e.slug, e."defaultAccessMins"
       ORDER BY total_students ASC;
     `;
-    const result = await query(sql);
-    res.json(result.rows);
+    const result = await query(sql, params);
+    res.json(result.rows.map(formatEventRow));
   } catch (err) {
     handleDbError(res, err, 'fetch event comparison');
   }
@@ -111,7 +156,7 @@ router.get('/comparison', async (req, res) => {
  * GET /api/event-insights/:id/overview
  * Returns summary KPI cards and event metadata for the selected event.
  */
-router.get('/:id/overview', async (req, res) => {
+router.get('/:id/overview', authorizeEventParam, async (req, res) => {
   try {
     const { id } = req.params;
     const sql = `
@@ -142,7 +187,7 @@ router.get('/:id/overview', async (req, res) => {
     if (!result.rows.length) {
       return res.status(404).json({ error: 'Event not found' });
     }
-    res.json(result.rows[0]);
+    res.json(formatEventRow(result.rows[0]));
   } catch (err) {
     handleDbError(res, err, 'fetch event overview');
   }
@@ -152,7 +197,7 @@ router.get('/:id/overview', async (req, res) => {
  * GET /api/event-insights/:id/participants
  * Provides paginated and searchable participant roster for the selected event.
  */
-router.get('/:id/participants', async (req, res) => {
+router.get('/:id/participants', authorizeEventParam, async (req, res) => {
   try {
     const { id } = req.params;
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
@@ -225,7 +270,7 @@ router.get('/:id/participants', async (req, res) => {
  * GET /api/event-insights/:id/grades
  * Provides grade/section distribution data for bar and doughnut charts.
  */
-router.get('/:id/grades', async (req, res) => {
+router.get('/:id/grades', authorizeEventParam, async (req, res) => {
   try {
     const { id } = req.params;
     const sql = `
@@ -252,7 +297,7 @@ router.get('/:id/grades', async (req, res) => {
  * GET /api/event-insights/:id/registration-trend
  * Provides registration timeline for cadence charts.
  */
-router.get('/:id/registration-trend', async (req, res) => {
+router.get('/:id/registration-trend', authorizeEventParam, async (req, res) => {
   try {
     const { id } = req.params;
     const sql = `
@@ -276,7 +321,7 @@ router.get('/:id/registration-trend', async (req, res) => {
  * GET /api/event-insights/:id/performance
  * Safely reports performance status without fabricating missing submission data.
  */
-router.get('/:id/performance', async (req, res) => {
+router.get('/:id/performance', authorizeEventParam, async (req, res) => {
   try {
     const { id } = req.params;
     const subCount = await query(

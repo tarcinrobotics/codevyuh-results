@@ -926,30 +926,39 @@ export function buildEventComparisonChart(canvasId, compData) {
     parseInt(mock.duration_mins, 10) || 0,
   ];
 
+  const datasets = [];
+  const hasKln = compData.some(e => e.id === '0542016a-b443-421e-9ae0-a4787697b945' || (e.name && e.name.includes('KLN')));
+  const hasDolphin = compData.some(e => e.id === 'e4bd56c6-924d-49bb-9c3a-e2c74eab9f89' || (e.name && (e.name.includes('Dolphin') || e.name.includes('Mock'))));
+
+  if (hasKln) {
+    datasets.push({
+      label: 'KLN PRELIMS',
+      data: klnVals,
+      backgroundColor: hexAlpha('#3b82f6', 0.85),
+      borderColor: '#3b82f6',
+      borderWidth: 1.5,
+      borderRadius: 4,
+      maxBarThickness: 36,
+    });
+  }
+
+  if (hasDolphin) {
+    datasets.push({
+      label: 'Dolphin PRELIMS',
+      data: mockVals,
+      backgroundColor: hexAlpha('#06b6d4', 0.85),
+      borderColor: '#06b6d4',
+      borderWidth: 1.5,
+      borderRadius: 4,
+      maxBarThickness: 36,
+    });
+  }
+
   return new Chart(ctx, {
     type: 'bar',
     data: {
       labels: metrics,
-      datasets: [
-        {
-          label: 'KLN School Demo',
-          data: klnVals,
-          backgroundColor: hexAlpha('#3b82f6', 0.85),
-          borderColor: '#3b82f6',
-          borderWidth: 1.5,
-          borderRadius: 4,
-          maxBarThickness: 36,
-        },
-        {
-          label: 'Mock Exam Cohort',
-          data: mockVals,
-          backgroundColor: hexAlpha('#10b981', 0.85),
-          borderColor: '#10b981',
-          borderWidth: 1.5,
-          borderRadius: 4,
-          maxBarThickness: 36,
-        },
-      ],
+      datasets,
     },
     options: {
       responsive: true,
