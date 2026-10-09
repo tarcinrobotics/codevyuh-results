@@ -1,7 +1,7 @@
 {
-  "name": "velammal-dashboard",
+  "name": "Codevyuh-dashboard",
   "version": "1.0.0",
-  "description": "Velammal School Campus Analysis Dashboard",
+  "description": "Codevyuh-Results Analysis Dashboard",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

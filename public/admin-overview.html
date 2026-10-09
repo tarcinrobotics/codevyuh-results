@@ -100,6 +100,48 @@
       color: #10b981;
     }
 
+    /* ── Active Event Header Label & Display ─────────── */
+    .event-header-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .active-event-label {
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .active-event-display {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      padding: 3px 10px;
+      border-radius: 6px;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      cursor: default;
+      user-select: text;
+    }
+    [data-theme="light"] .active-event-display {
+      color: #0284c7;
+      background: rgba(2, 132, 199, 0.08);
+      border-color: rgba(2, 132, 199, 0.22);
+    }
+    @media (max-width: 768px) {
+      .active-event-display {
+        white-space: normal;
+        font-size: 0.78rem;
+      }
+    }
+
     /* ── Database Error Banner ────────────────────────── */
     .db-error-banner {
       padding: 16px 20px;
@@ -417,12 +459,13 @@
     <div class="filterbar-sep" aria-hidden="true"></div>
 
     <div class="filters-group" style="display:flex;align-items:center;gap:var(--space-md);flex-wrap:wrap">
-      <!-- Event Dropdown -->
-      <div class="filter-item">
-        <label class="filter-item-label" for="filter-event">
+      <!-- Event Header Display -->
+      <div class="filter-item event-header-item">
+        <span class="filter-item-label active-event-label" id="label-active-event">
           <i data-lucide="calendar" class="icon-sm"></i> Active Event
-        </label>
-        <select id="filter-event" class="filter-select" aria-label="Filter by Event">
+        </span>
+        <span id="active-event-display" class="active-event-display" aria-label="Authenticated Active Event">Loading target event…</span>
+        <select id="filter-event" class="filter-select" aria-label="Filter by Event" style="display:none">
           <option value="">Loading target events…</option>
         </select>
       </div>
