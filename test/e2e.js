@@ -286,6 +286,104 @@ async function runTests() {
     assert.strictEqual(zones[0].name, 'Dolphin PRELIMS');
   });
 
+  // ── 5. Dolphin PRELIMS Analytics & Insights Endpoints ──
+  await test('Dolphin Admin fetches verified activity KPIs (555 enrolled, 45 active, 35 attempted, 150 attempts, 24 locks)', async () => {
+    const res = await fetch(`${BASE_URL}/api/event-insights/e4bd56c6-924d-49bb-9c3a-e2c74eab9f89/activity-kpis`, {
+      headers: { Cookie: dolphinCookie },
+    });
+    assert.strictEqual(res.status, 200);
+    const data = await res.json();
+    assert.strictEqual(data.enrolled, 555);
+    assert.strictEqual(data.activeStudents, 45);
+    assert.strictEqual(data.attemptedStudents, 35);
+    assert.strictEqual(data.totalAttempts, 150);
+    assert.strictEqual(data.lockedRecords, 24);
+    assert.strictEqual(data.studentsWithLocks, 16);
+    assert.strictEqual(data.activeRate, 8.1);
+    assert.strictEqual(data.attemptedRate, 6.3);
+  });
+
+  await test('Dolphin Admin fetches grade engagement analytics for grades 3 to 8', async () => {
+    const res = await fetch(`${BASE_URL}/api/event-insights/e4bd56c6-924d-49bb-9c3a-e2c74eab9f89/grade-engagement`, {
+      headers: { Cookie: dolphinCookie },
+    });
+    assert.strictEqual(res.status, 200);
+    const grades = await res.json();
+    assert.ok(Array.isArray(grades));
+    assert.strictEqual(grades.length, 6);
+    const g6 = grades.find(g => g.grade === '6');
+    assert.ok(g6);
+    assert.strictEqual(g6.enrolled, 110);
+    assert.strictEqual(g6.active_students, 1);
+  });
+
+  await test('Dolphin Admin fetches challenge type distribution', async () => {
+    const res = await fetch(`${BASE_URL}/api/event-insights/e4bd56c6-924d-49bb-9c3a-e2c74eab9f89/challenge-types`, {
+      headers: { Cookie: dolphinCookie },
+    });
+    assert.strictEqual(res.status, 200);
+    const types = await res.json();
+    assert.ok(Array.isArray(types));
+    assert.ok(types.length > 0);
+    assert.ok(types.some(t => t.challenge_type === 'boolean_circuit'));
+  });
+
+  await test('Dolphin Admin fetches top challenges', async () => {
+    const res = await fetch(`${BASE_URL}/api/event-insights/e4bd56c6-924d-49bb-9c3a-e2c74eab9f89/top-challenges`, {
+      headers: { Cookie: dolphinCookie },
+    });
+    assert.strictEqual(res.status, 200);
+    const topCh = await res.json();
+    assert.ok(Array.isArray(topCh));
+    assert.ok(topCh.length > 0);
+    assert.ok(topCh[0].attempts > 0);
+  });
+
+  await test('Dolphin Admin fetches student activity roster with pagination and filters', async () => {
+    const res = await fetch(`${BASE_URL}/api/event-insights/e4bd56c6-924d-49bb-9c3a-e2c74eab9f89/student-activity?page=1&limit=10&status=locked`, {
+      headers: { Cookie: dolphinCookie },
+    });
+    assert.strictEqual(res.status, 200);
+    const roster = await res.json();
+    assert.strictEqual(roster.total, 16);
+    assert.strictEqual(roster.students.length, 10);
+    assert.ok(roster.students.every(s => s.locked_count > 0));
+  });
+
+  await test('Dolphin Leaderboard returns top 3 and top 10 rankings ordered by attempts and locked records', async () => {
+    const res = await fetch(`${BASE_URL}/api/event-insights/e4bd56c6-924d-49bb-9c3a-e2c74eab9f89/leaderboard`, {
+      headers: { Cookie: dolphinCookie },
+    });
+    assert.strictEqual(res.status, 200);
+    const lb = await res.json();
+    assert.strictEqual(lb.available, true);
+    assert.strictEqual(lb.top3.length, 3);
+    assert.strictEqual(lb.top3[0].name, 'B. Ila');
+    assert.strictEqual(lb.top3[0].total_attempts, 16);
+    assert.strictEqual(lb.top3[1].name, 'Dhaswanth Sankar P');
+    assert.strictEqual(lb.top3[1].total_attempts, 15);
+    assert.strictEqual(lb.top3[2].name, 'R.M.kaviyazhini');
+    assert.strictEqual(lb.top3[2].total_attempts, 10);
+    assert.strictEqual(lb.top10.length, 10);
+  });
+
+  await test('KLN Admin is DENIED access to Dolphin PRELIMS insights endpoints (403 Forbidden)', async () => {
+    const endpoints = [
+      'activity-kpis',
+      'grade-engagement',
+      'challenge-types',
+      'top-challenges',
+      'student-activity',
+      'leaderboard',
+    ];
+    for (const ep of endpoints) {
+      const res = await fetch(`${BASE_URL}/api/event-insights/e4bd56c6-924d-49bb-9c3a-e2c74eab9f89/${ep}`, {
+        headers: { Cookie: klnCookie },
+      });
+      assert.strictEqual(res.status, 403, `Expected 403 for KLN Admin accessing Dolphin ${ep}, got ${res.status}`);
+    }
+  });
+
   // ── 5. User Management Isolation ──
   await test('KLN Admin and Dolphin Admin user rosters are completely isolated', async () => {
     const klnUsersRes = await fetch(`${BASE_URL}/api/auth/users`, { headers: { Cookie: klnCookie } });

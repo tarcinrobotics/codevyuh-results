@@ -11,6 +11,12 @@ import {
   fetchEventTrend,
   fetchEventComparison,
   fetchEventParticipants,
+  fetchEventActivityKpis,
+  fetchEventGradeEngagement,
+  fetchEventChallengeTypes,
+  fetchEventTopChallenges,
+  fetchEventStudentActivity,
+  fetchEventLeaderboard,
 } from './api.js';
 
 import {
@@ -18,10 +24,15 @@ import {
   buildCohortDoughnutChart,
   buildRegistrationTimelineChart,
   buildEventComparisonChart,
+  buildGradeEngagementChart,
+  buildActivityFunnelChart,
+  buildChallengeTypesChart,
+  buildTopChallengesChart,
   registerChart,
 } from './charts.js';
 
 // ── State ─────────────────────────────────────────────────────────────────
+const DOLPHIN_EVENT_ID = 'e4bd56c6-924d-49bb-9c3a-e2c74eab9f89';
 let currentEventId = null;
 let eventsCache = [];
 let gradesCache = [];
@@ -32,6 +43,18 @@ const pageSize = 50;
 let searchQuery = '';
 let searchDebounceTimer = null;
 let isRefreshing = false;
+
+// Dolphin-specific state
+let dolphinActivityKpis = null;
+let dolphinGradeData = [];
+let dolphinTypeData = [];
+let dolphinTopChData = [];
+let dolphinCurrentPage = 1;
+const dolphinPageSize = 50;
+let dolphinSearchQuery = '';
+let dolphinGradeFilter = 'all';
+let dolphinStatusFilter = 'all';
+let dolphinDebounceTimer = null;
 
 let autoRetryCount = 0;
 const MAX_AUTO_RETRIES = 2;
@@ -45,9 +68,18 @@ async function initDashboard() {
     autoRetryCount = 0;
 
     if (eventsCache.length > 0) {
-      // Check URL search params for ?event=UUID, otherwise pick first event
+      // Check URL search params for ?event=UUID, URL pathname, or scoped user event
       const urlParams = new URLSearchParams(window.location.search);
-      const requestedId = urlParams.get('event');
+      let requestedId = urlParams.get('event');
+      if (!requestedId) {
+        if (window.location.pathname.includes('/dolphin')) {
+          requestedId = DOLPHIN_EVENT_ID;
+        } else if (window.location.pathname.includes('/kln')) {
+          requestedId = '0542016a-b443-421e-9ae0-a4787697b945';
+        } else if (window.currentAuthUser && window.currentAuthUser.eventId) {
+          requestedId = window.currentAuthUser.eventId;
+        }
+      }
       const matched = eventsCache.find(e => e.id === requestedId);
       currentEventId = matched ? matched.id : eventsCache[0].id;
 
@@ -155,6 +187,54 @@ function setupEventListeners() {
       }, 100);
     });
   });
+
+  // Dolphin Roster controls
+  const dolphinSearchInput = document.getElementById('dolphin-roster-search-input');
+  if (dolphinSearchInput) {
+    dolphinSearchInput.addEventListener('input', (e) => {
+      clearTimeout(dolphinDebounceTimer);
+      dolphinDebounceTimer = setTimeout(async () => {
+        dolphinSearchQuery = e.target.value.trim();
+        dolphinCurrentPage = 1;
+        await loadDolphinStudentActivity();
+      }, 300);
+    });
+  }
+
+  const dolphinGradeSelect = document.getElementById('dolphin-roster-grade-filter');
+  if (dolphinGradeSelect) {
+    dolphinGradeSelect.addEventListener('change', async (e) => {
+      dolphinGradeFilter = e.target.value;
+      dolphinCurrentPage = 1;
+      await loadDolphinStudentActivity();
+    });
+  }
+
+  const dolphinStatusSelect = document.getElementById('dolphin-roster-status-filter');
+  if (dolphinStatusSelect) {
+    dolphinStatusSelect.addEventListener('change', async (e) => {
+      dolphinStatusFilter = e.target.value;
+      dolphinCurrentPage = 1;
+      await loadDolphinStudentActivity();
+    });
+  }
+
+  const dolphinBtnPrev = document.getElementById('dolphin-btn-prev');
+  const dolphinBtnNext = document.getElementById('dolphin-btn-next');
+  if (dolphinBtnPrev) {
+    dolphinBtnPrev.addEventListener('click', async () => {
+      if (dolphinCurrentPage > 1) {
+        dolphinCurrentPage--;
+        await loadDolphinStudentActivity();
+      }
+    });
+  }
+  if (dolphinBtnNext) {
+    dolphinBtnNext.addEventListener('click', async () => {
+      dolphinCurrentPage++;
+      await loadDolphinStudentActivity();
+    });
+  }
 }
 
 // ── Populate Active Event Header / Dropdown ──────────────────────────────
@@ -228,25 +308,40 @@ async function loadAllPanels(eventId) {
       }
     }
 
-    const [overview, grades, trend, comparison] = await Promise.all([
-      fetchEventOverview(eventId),
-      fetchEventGrades(eventId),
-      fetchEventTrend(eventId),
-      fetchEventComparison(),
-    ]);
+    const overview = await fetchEventOverview(eventId);
+    renderHeroMetadata(overview);
 
-    gradesCache = grades;
-    trendCache = trend;
-    comparisonCache = comparison;
+    const klnView = document.getElementById('kln-dashboard-view');
+    const dolphinView = document.getElementById('dolphin-dashboard-view');
 
-    // Render Event Hero & KPIs
-    renderHeroAndKpis(overview, grades);
+    if (eventId === DOLPHIN_EVENT_ID) {
+      if (klnView) klnView.style.display = 'none';
+      if (dolphinView) dolphinView.style.display = '';
 
-    // Render 4 Charts
-    renderCharts(grades, trend, comparison);
+      await loadDolphinPanels(overview);
+    } else {
+      if (dolphinView) dolphinView.style.display = 'none';
+      if (klnView) klnView.style.display = '';
 
-    // Render Participants Table
-    await loadParticipants(eventId);
+      const [grades, trend, comparison] = await Promise.all([
+        fetchEventGrades(eventId),
+        fetchEventTrend(eventId),
+        fetchEventComparison(),
+      ]);
+
+      gradesCache = grades;
+      trendCache = trend;
+      comparisonCache = comparison;
+
+      // Render Event Hero & KPIs
+      renderHeroAndKpis(overview, grades);
+
+      // Render 4 Charts
+      renderCharts(grades, trend, comparison);
+
+      // Render Participants Table
+      await loadParticipants(eventId);
+    }
 
     if (window.lucide) {
       lucide.createIcons();
@@ -262,7 +357,253 @@ async function loadAllPanels(eventId) {
   }
 }
 
-// ── Render Event Hero & KPI Cards ─────────────────────────────────────────
+// ── Render Shared Event Hero Metadata ─────────────────────────────────────
+function renderHeroMetadata(overview) {
+  const instNameEl = document.getElementById('event-institution-name');
+  const heroTitleEl = document.getElementById('event-hero-title');
+  const heroDescEl = document.getElementById('event-hero-desc');
+  const eventIdText = document.getElementById('event-id-text');
+  const eventLinkText = document.getElementById('event-link-text');
+  const btnEventLink = document.getElementById('btn-event-link');
+  const quickType = document.getElementById('event-quick-type');
+  const quickStatus = document.getElementById('event-quick-status');
+
+  if (instNameEl) instNameEl.textContent = overview.institution_name || 'Institution Cohort';
+  if (heroTitleEl) heroTitleEl.textContent = overview.name || 'Event Insights';
+  if (heroDescEl) heroDescEl.textContent = overview.description || 'Verified competition and assessment event.';
+  if (eventIdText) eventIdText.textContent = (overview.id || '').slice(0, 8) + '…';
+  if (eventLinkText) eventLinkText.textContent = overview.slug ? `codevyuh.com/event/${overview.slug}` : '—';
+  if (btnEventLink && overview.registration_link) {
+    btnEventLink.href = overview.registration_link;
+  }
+  if (quickType) quickType.innerHTML = `<i data-lucide="tag" class="icon-sm"></i> ${esc(overview.event_type || 'GENERAL')}`;
+  if (quickStatus) {
+    quickStatus.innerHTML = `<span class="pulse-dot"></span> ${esc(overview.status || 'OPEN')}`;
+  }
+}
+
+// ── Render Dolphin Panels ─────────────────────────────────────────────────
+async function loadDolphinPanels(overview) {
+  const [kpis, gradeData, typeData, topChData, leaderboard] = await Promise.all([
+    fetchEventActivityKpis(DOLPHIN_EVENT_ID),
+    fetchEventGradeEngagement(DOLPHIN_EVENT_ID),
+    fetchEventChallengeTypes(DOLPHIN_EVENT_ID),
+    fetchEventTopChallenges(DOLPHIN_EVENT_ID),
+    fetchEventLeaderboard(DOLPHIN_EVENT_ID),
+  ]);
+
+  dolphinActivityKpis = kpis;
+  dolphinGradeData = gradeData;
+  dolphinTypeData = typeData;
+  dolphinTopChData = topChData;
+
+  // Animate Dolphin KPIs
+  animateValue('kpi-dolphin-enrolled', kpis.enrolled, 0);
+  animateValue('kpi-dolphin-active', kpis.activeStudents, 0);
+  animateValue('kpi-dolphin-attempted', kpis.attemptedStudents, 0);
+  animateValue('kpi-dolphin-attempts', kpis.totalAttempts, 0);
+  animateValue('kpi-dolphin-locks', kpis.lockedRecords, 0);
+
+  const activeSub = document.getElementById('kpi-dolphin-active-sub');
+  if (activeSub) activeSub.textContent = `${kpis.activeRate}% activity rate`;
+
+  const attemptedSub = document.getElementById('kpi-dolphin-attempted-sub');
+  if (attemptedSub) attemptedSub.textContent = `${kpis.attemptedRate}% of cohort`;
+
+  const locksSub = document.getElementById('kpi-dolphin-locks-sub');
+  if (locksSub) locksSub.textContent = `Affecting ${kpis.studentsWithLocks} students`;
+
+  const scoreStatusEl = document.getElementById('kpi-dolphin-score-status');
+  if (scoreStatusEl) {
+    scoreStatusEl.classList.remove('skeleton', 'value-loading');
+    scoreStatusEl.innerHTML = `<span style="color:#f59e0b;font-weight:700">Awaiting Ingestion</span>`;
+  }
+
+  const statusText = document.getElementById('filter-status-text');
+  if (statusText) {
+    statusText.textContent = `Displaying ${kpis.enrolled} enrolled students (${kpis.activeStudents} active) for Dolphin PRELIMS`;
+  }
+
+  // Render Podium & Standby
+  renderDolphinPodium(leaderboard);
+
+  // Render Dolphin Charts
+  renderDolphinCharts(dolphinGradeData, kpis, dolphinTypeData, dolphinTopChData);
+
+  // Render Student Activity Roster Table
+  await loadDolphinStudentActivity();
+}
+
+function renderDolphinPodium(leaderboard) {
+  const pendingNotice = document.getElementById('podium-pending-notice');
+  const lbStandby = document.getElementById('dolphin-leaderboard-standby');
+  const lbTableWrap = document.getElementById('dolphin-leaderboard-table-wrap');
+
+  if (pendingNotice) pendingNotice.style.display = 'none';
+  if (lbStandby) lbStandby.style.display = 'none';
+  if (lbTableWrap) lbTableWrap.style.display = '';
+
+  if (leaderboard && leaderboard.available && leaderboard.top3 && leaderboard.top3.length > 0) {
+    const [r1, r2, r3] = leaderboard.top3;
+    const formatMetric = (r) => {
+      if (r.score !== undefined && r.score > 0) return `${r.score} pts`;
+      return `${r.total_attempts} Attempts`;
+    };
+
+    if (r1) {
+      const elName = document.getElementById('podium-rank1-name');
+      const elGrade = document.getElementById('podium-rank1-grade');
+      const elScore = document.getElementById('podium-rank1-score');
+      const elMeta = document.getElementById('podium-rank1-meta');
+      if (elName) elName.textContent = r1.name || r1.username;
+      if (elGrade) elGrade.textContent = `Grade ${r1.grade}`;
+      if (elScore) elScore.textContent = formatMetric(r1);
+      if (elMeta) {
+        elMeta.textContent = '';
+        elMeta.style.display = 'none';
+      }
+    }
+    if (r2) {
+      const elName = document.getElementById('podium-rank2-name');
+      const elGrade = document.getElementById('podium-rank2-grade');
+      const elScore = document.getElementById('podium-rank2-score');
+      const elMeta = document.getElementById('podium-rank2-meta');
+      if (elName) elName.textContent = r2.name || r2.username;
+      if (elGrade) elGrade.textContent = `Grade ${r2.grade}`;
+      if (elScore) elScore.textContent = formatMetric(r2);
+      if (elMeta) {
+        elMeta.textContent = '';
+        elMeta.style.display = 'none';
+      }
+    }
+    if (r3) {
+      const elName = document.getElementById('podium-rank3-name');
+      const elGrade = document.getElementById('podium-rank3-grade');
+      const elScore = document.getElementById('podium-rank3-score');
+      const elMeta = document.getElementById('podium-rank3-meta');
+      if (elName) elName.textContent = r3.name || r3.username;
+      if (elGrade) elGrade.textContent = `Grade ${r3.grade}`;
+      if (elScore) elScore.textContent = formatMetric(r3);
+      if (elMeta) {
+        elMeta.textContent = '';
+        elMeta.style.display = 'none';
+      }
+    }
+
+    const tbody = document.getElementById('dolphin-leaderboard-tbody');
+    if (tbody && leaderboard.top10) {
+      tbody.innerHTML = leaderboard.top10.map(st => `
+        <tr>
+          <td><span class="rank-badge">${st.rank}</span></td>
+          <td style="font-weight:600;color:var(--text-primary)">${esc(st.name || st.username)}</td>
+          <td><code style="font-size:0.78rem;background:rgba(255,255,255,0.05);padding:2px 6px;border-radius:4px">${esc(st.username)}</code></td>
+          <td><span class="zone-count-pill">Grade ${esc(st.grade)}</span></td>
+          <td style="font-weight:700;color:#38bdf8">${st.score !== undefined && st.score > 0 ? st.score + ' pts' : st.total_attempts + ' Attempts'}</td>
+        </tr>
+      `).join('');
+    }
+  }
+}
+
+function renderDolphinCharts(gradeData, kpis, typeData, topChData) {
+  try {
+    const chartA = buildGradeEngagementChart('chart-dolphin-grade-canvas', gradeData);
+    if (chartA) registerChart('dolphinGrade', chartA);
+
+    const chartB = buildActivityFunnelChart('chart-dolphin-funnel-canvas', kpis);
+    if (chartB) registerChart('dolphinFunnel', chartB);
+
+    const chartC = buildChallengeTypesChart('chart-dolphin-types-canvas', typeData);
+    if (chartC) registerChart('dolphinTypes', chartC);
+
+    const chartD = buildTopChallengesChart('chart-dolphin-topch-canvas', topChData);
+    if (chartD) registerChart('dolphinTopCh', chartD);
+  } catch (err) {
+    console.warn('[Dolphin Charts] Non-fatal chart rendering notice:', err.message || err);
+  }
+}
+
+async function loadDolphinStudentActivity() {
+  const tbody = document.getElementById('dolphin-roster-tbody');
+  const countBadge = document.getElementById('dolphin-roster-count-badge');
+  const pageInfo = document.getElementById('dolphin-pagination-info');
+  const btnPrev = document.getElementById('dolphin-btn-prev');
+  const btnNext = document.getElementById('dolphin-btn-next');
+
+  if (tbody) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-muted)">Loading student activity…</td></tr>`;
+  }
+
+  try {
+    const data = await fetchEventStudentActivity(DOLPHIN_EVENT_ID, {
+      page: dolphinCurrentPage,
+      limit: dolphinPageSize,
+      grade: dolphinGradeFilter,
+      status: dolphinStatusFilter,
+      q: dolphinSearchQuery,
+    });
+
+    if (countBadge) countBadge.textContent = data.total;
+
+    const startIdx = data.total === 0 ? 0 : (dolphinCurrentPage - 1) * dolphinPageSize + 1;
+    const endIdx = Math.min(dolphinCurrentPage * dolphinPageSize, data.total);
+
+    if (pageInfo) {
+      pageInfo.textContent = `Showing ${startIdx}–${endIdx} of ${data.total}`;
+    }
+
+    if (btnPrev) btnPrev.disabled = dolphinCurrentPage <= 1;
+    if (btnNext) btnNext.disabled = dolphinCurrentPage >= data.totalPages;
+
+    if (!tbody) return;
+
+    if (!data.students || data.students.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--text-muted)">No student activity found matching filters</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data.students.map((s, idx) => {
+      const rowNum = startIdx + idx;
+      let statusHtml = '<span class="status-pill status-inactive">No Activity</span>';
+      if (s.activity_status === 'locked') {
+        statusHtml = '<span class="status-pill status-locked">● Locked</span>';
+      } else if (s.activity_status === 'attempted') {
+        statusHtml = '<span class="status-pill status-attempted">● Attempted</span>';
+      } else if (s.activity_status === 'opened_only') {
+        statusHtml = '<span class="status-pill status-opened">● Opened Only</span>';
+      }
+
+      const lastActiveStr = s.last_activity_at
+        ? new Date(s.last_activity_at).toLocaleString('en-IN', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : '—';
+
+      return `
+        <tr>
+          <td><span class="rank-badge">${rowNum}</span></td>
+          <td style="font-weight:600;color:var(--text-primary)">${esc(s.name || 'Student Participant')}</td>
+          <td><code style="font-size:0.78rem;background:rgba(255,255,255,0.05);padding:2px 6px;border-radius:4px">${esc(s.username)}</code></td>
+          <td><span class="zone-count-pill">Grade ${esc(s.grade || '—')}</span></td>
+          <td style="font-weight:600;color:${s.challenges_opened > 0 ? '#38bdf8' : 'var(--text-muted)'}">${s.challenges_opened}</td>
+          <td style="font-weight:600;color:${s.attempts > 0 ? '#f59e0b' : 'var(--text-muted)'}">${s.attempts}</td>
+          <td style="font-weight:600;color:${s.locked_count > 0 ? '#ef4444' : 'var(--text-muted)'}">${s.locked_count}</td>
+          <td style="color:var(--text-muted);font-size:0.78rem">${esc(lastActiveStr)}</td>
+          <td>${statusHtml}</td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:24px;color:#ef4444">Error loading student activity: ${esc(err.message)}</td></tr>`;
+    }
+  }
+}
+
+// ── Render Event Hero & KPI Cards (KLN) ───────────────────────────────────
 function renderHeroAndKpis(overview, grades) {
   // Hero metadata
   const instNameEl = document.getElementById('event-institution-name');
@@ -347,7 +688,11 @@ function renderCharts(grades, trend, comparison) {
 }
 
 function reRenderCharts() {
-  if (gradesCache.length) {
+  if (currentEventId === DOLPHIN_EVENT_ID) {
+    if (dolphinGradeData && dolphinActivityKpis) {
+      renderDolphinCharts(dolphinGradeData, dolphinActivityKpis, dolphinTypeData, dolphinTopChData);
+    }
+  } else if (gradesCache.length) {
     renderCharts(gradesCache, trendCache, comparisonCache);
   }
 }
@@ -422,7 +767,18 @@ async function loadParticipants(eventId) {
 
 // ── Utilities ─────────────────────────────────────────────────────────────
 function setKpiLoading(isLoading) {
-  const ids = ['kpi-total-participants', 'kpi-grade-coverage', 'kpi-event-status', 'kpi-allocated-duration'];
+  const ids = [
+    'kpi-total-participants',
+    'kpi-grade-coverage',
+    'kpi-event-status',
+    'kpi-allocated-duration',
+    'kpi-dolphin-enrolled',
+    'kpi-dolphin-active',
+    'kpi-dolphin-attempted',
+    'kpi-dolphin-attempts',
+    'kpi-dolphin-locks',
+    'kpi-dolphin-score-status',
+  ];
   ids.forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -483,6 +839,12 @@ function clearErrorState() {
     'kpi-event-status',
     'kpi-duration',
     'kpi-institution-name',
+    'kpi-dolphin-enrolled',
+    'kpi-dolphin-active',
+    'kpi-dolphin-attempted',
+    'kpi-dolphin-attempts',
+    'kpi-dolphin-locks',
+    'kpi-dolphin-score-status',
   ];
   kpiIds.forEach(id => {
     const el = document.getElementById(id);
@@ -518,6 +880,12 @@ function showErrorState(msg) {
     'kpi-event-status',
     'kpi-duration',
     'kpi-institution-name',
+    'kpi-dolphin-enrolled',
+    'kpi-dolphin-active',
+    'kpi-dolphin-attempted',
+    'kpi-dolphin-attempts',
+    'kpi-dolphin-locks',
+    'kpi-dolphin-score-status',
   ];
   kpiIds.forEach(id => {
     const el = document.getElementById(id);

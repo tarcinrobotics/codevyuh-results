@@ -116,3 +116,50 @@ export async function fetchEventPerformance(id) {
   return res.json();
 }
 
+export async function fetchEventActivityKpis(id) {
+  const res = await fetch(`${EVENT_API_BASE}/${encodeURIComponent(id)}/activity-kpis`, { headers: { 'Accept': 'application/json' } });
+  if (!res.ok) throw new Error(`API /:id/activity-kpis → ${res.status}`);
+  return res.json();
+}
+
+export async function fetchEventGradeEngagement(id) {
+  const res = await fetch(`${EVENT_API_BASE}/${encodeURIComponent(id)}/grade-engagement`, { headers: { 'Accept': 'application/json' } });
+  if (!res.ok) throw new Error(`API /:id/grade-engagement → ${res.status}`);
+  return res.json();
+}
+
+export async function fetchEventChallengeTypes(id) {
+  const res = await fetch(`${EVENT_API_BASE}/${encodeURIComponent(id)}/challenge-types`, { headers: { 'Accept': 'application/json' } });
+  if (!res.ok) throw new Error(`API /:id/challenge-types → ${res.status}`);
+  return res.json();
+}
+
+export async function fetchEventTopChallenges(id) {
+  const res = await fetch(`${EVENT_API_BASE}/${encodeURIComponent(id)}/top-challenges`, { headers: { 'Accept': 'application/json' } });
+  if (!res.ok) throw new Error(`API /:id/top-challenges → ${res.status}`);
+  return res.json();
+}
+
+export async function fetchEventStudentActivity(id, params = {}) {
+  const clean = {};
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== null && v !== undefined && v !== '') clean[k] = v;
+  }
+  const qs = new URLSearchParams(clean).toString();
+  const res = await fetch(`${EVENT_API_BASE}/${encodeURIComponent(id)}/student-activity${qs ? '?' + qs : ''}`, { headers: { 'Accept': 'application/json' } });
+  if (!res.ok) throw new Error(`API /:id/student-activity → ${res.status}`);
+  return res.json();
+}
+
+export async function fetchEventLeaderboard(id, params = {}) {
+  const clean = {};
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== null && v !== undefined && v !== '') clean[k] = v;
+  }
+  const qs = new URLSearchParams(clean).toString();
+  const res = await fetch(`${EVENT_API_BASE}/${encodeURIComponent(id)}/leaderboard${qs ? '?' + qs : ''}`, { headers: { 'Accept': 'application/json' } });
+  if (!res.ok) throw new Error(`API /:id/leaderboard → ${res.status}`);
+  return res.json();
+}
+
+

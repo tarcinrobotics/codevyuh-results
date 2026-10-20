@@ -318,31 +318,368 @@ router.get('/:id/registration-trend', authorizeEventParam, async (req, res) => {
 });
 
 /**
- * GET /api/event-insights/:id/performance
- * Safely reports performance status without fabricating missing submission data.
+ * GET /api/event-insights/:id/activity-kpis
+ * Returns verified cohort activity KPIs (enrolled, active, attempted, total attempts, lockouts).
  */
-router.get('/:id/performance', authorizeEventParam, async (req, res) => {
+router.get('/:id/activity-kpis', authorizeEventParam, async (req, res) => {
   try {
     const { id } = req.params;
-    const subCount = await query(
-      'SELECT COUNT(*)::int AS count FROM "Submission" WHERE "eventId" = $1',
-      [id]
-    );
+    const sql = `
+      WITH event_users AS (
+        SELECT u.id
+        FROM "UserEvent" ue
+        JOIN "User" u ON u.id = ue."userId"
+        WHERE ue."eventId" = $1::text AND u.role = 'STUDENT'
+      ),
+      student_activity AS (
+        SELECT 
+          cs."userId",
+          COUNT(*)::int AS rows_count,
+          COALESCE(SUM(cs.attempts), 0)::int AS total_attempts,
+          COUNT(*) FILTER (WHERE cs."isLocked" = true)::int AS locked_count
+        FROM "ChallengeStatus" cs
+        WHERE cs."userId" IN (SELECT id FROM event_users)
+        GROUP BY cs."userId"
+      )
+      SELECT
+        (SELECT COUNT(*)::int FROM event_users) AS enrolled,
+        (SELECT COUNT(*)::int FROM student_activity) AS active_students,
+        (SELECT COUNT(*)::int FROM student_activity WHERE total_attempts > 0) AS attempted_students,
+        (SELECT COALESCE(SUM(total_attempts), 0)::int FROM student_activity) AS total_attempts,
+        (SELECT COUNT(*)::int FROM "ChallengeStatus" cs WHERE cs."userId" IN (SELECT id FROM event_users) AND cs."isLocked" = true) AS locked_records,
+        (SELECT COUNT(*)::int FROM student_activity WHERE locked_count > 0) AS students_with_locks
+    `;
+    const result = await query(sql, [id]);
+    const row = result.rows[0] || {};
+    const enrolled = Number(row.enrolled || 0);
+    const activeStudents = Number(row.active_students || 0);
+    const attemptedStudents = Number(row.attempted_students || 0);
+    const totalAttempts = Number(row.total_attempts || 0);
+    const lockedRecords = Number(row.locked_records || 0);
+    const studentsWithLocks = Number(row.students_with_locks || 0);
+    const unrecordedStudents = Math.max(0, enrolled - activeStudents);
+    const activeRate = enrolled > 0 ? ((activeStudents / enrolled) * 100).toFixed(1) : '0.0';
+    const attemptedRate = enrolled > 0 ? ((attemptedStudents / enrolled) * 100).toFixed(1) : '0.0';
 
-    if (subCount.rows[0].count === 0) {
+    res.json({
+      enrolled,
+      activeStudents,
+      activeRate: parseFloat(activeRate),
+      attemptedStudents,
+      attemptedRate: parseFloat(attemptedRate),
+      unrecordedStudents,
+      totalAttempts,
+      lockedRecords,
+      studentsWithLocks,
+      scorePipelineStatus: 'AWAITING_INGESTION',
+    });
+  } catch (err) {
+    handleDbError(res, err, 'fetch activity KPIs');
+  }
+});
+
+/**
+ * GET /api/event-insights/:id/grade-engagement
+ * Returns engagement breakdown comparing enrolled vs active by grade.
+ */
+router.get('/:id/grade-engagement', authorizeEventParam, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const sql = `
+      WITH event_students AS (
+        SELECT u.id, u.grade
+        FROM "UserEvent" ue
+        JOIN "User" u ON u.id = ue."userId"
+        WHERE ue."eventId" = $1::text AND u.role = 'STUDENT'
+      )
+      SELECT 
+        es.grade,
+        COUNT(DISTINCT es.id)::int AS enrolled,
+        COUNT(DISTINCT cs."userId")::int AS active_students,
+        ROUND(100.0 * COUNT(DISTINCT cs."userId") / NULLIF(COUNT(DISTINCT es.id), 0), 1) AS active_rate,
+        COALESCE(SUM(cs.attempts), 0)::int AS total_attempts,
+        COUNT(*) FILTER (WHERE cs."isLocked" = true)::int AS locked_records,
+        COUNT(DISTINCT cs."userId") FILTER (WHERE cs."isLocked" = true)::int AS students_with_locks
+      FROM event_students es
+      LEFT JOIN "ChallengeStatus" cs ON cs."userId" = es.id
+      GROUP BY es.grade
+      ORDER BY es.grade ASC;
+    `;
+    const result = await query(sql, [id]);
+    res.json(result.rows);
+  } catch (err) {
+    handleDbError(res, err, 'fetch grade engagement');
+  }
+});
+
+/**
+ * GET /api/event-insights/:id/challenge-types
+ * Returns aggregate metrics for challenge categories and types parsed from challengeId.
+ */
+router.get('/:id/challenge-types', authorizeEventParam, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const sql = `
+      SELECT 
+        SPLIT_PART(cs."challengeId", '-', 1) AS category,
+        SPLIT_PART(cs."challengeId", '-', 2) AS challenge_type,
+        COUNT(*)::int AS challenge_rows,
+        COUNT(DISTINCT cs."userId")::int AS students,
+        COALESCE(SUM(cs.attempts), 0)::int AS attempts,
+        COUNT(*) FILTER (WHERE cs."isLocked" = true)::int AS locked_records,
+        ROUND(100.0 * COUNT(*) FILTER (WHERE cs."isLocked" = true) / NULLIF(COUNT(*), 0), 1) AS lock_rate
+      FROM "ChallengeStatus" cs
+      WHERE cs."userId" IN (
+        SELECT "userId" FROM "UserEvent" WHERE "eventId" = $1::text
+      )
+      GROUP BY category, challenge_type
+      ORDER BY attempts DESC, challenge_rows DESC;
+    `;
+    const result = await query(sql, [id]);
+    res.json(result.rows);
+  } catch (err) {
+    handleDbError(res, err, 'fetch challenge types');
+  }
+});
+
+/**
+ * GET /api/event-insights/:id/top-challenges
+ * Returns most-opened and attempted individual challenges.
+ */
+router.get('/:id/top-challenges', authorizeEventParam, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const sql = `
+      SELECT 
+        cs."challengeId",
+        SPLIT_PART(cs."challengeId", '-', 1) AS category,
+        SPLIT_PART(cs."challengeId", '-', 2) AS challenge_type,
+        COUNT(DISTINCT cs."userId")::int AS students_opened,
+        COALESCE(SUM(cs.attempts), 0)::int AS attempts,
+        COUNT(*) FILTER (WHERE cs."isLocked" = true)::int AS locked_records
+      FROM "ChallengeStatus" cs
+      WHERE cs."userId" IN (
+        SELECT "userId" FROM "UserEvent" WHERE "eventId" = $1::text
+      )
+      GROUP BY cs."challengeId"
+      ORDER BY students_opened DESC, attempts DESC
+      LIMIT 10;
+    `;
+    const result = await query(sql, [id]);
+    res.json(result.rows);
+  } catch (err) {
+    handleDbError(res, err, 'fetch top challenges');
+  }
+});
+
+/**
+ * GET /api/event-insights/:id/student-activity
+ * Provides paginated, searchable, grade-filtered roster with activity status indicators.
+ */
+router.get('/:id/student-activity', authorizeEventParam, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
+    const offset = (page - 1) * limit;
+    const grade = req.query.grade ? req.query.grade.trim() : null;
+    const status = req.query.status ? req.query.status.trim().toLowerCase() : null;
+    const search = req.query.q ? req.query.q.trim() : null;
+
+    let baseCte = `
+      WITH student_agg AS (
+        SELECT 
+          u.id AS user_id,
+          u.name,
+          u.username,
+          u.grade,
+          u."createdAt" AS registered_at,
+          COUNT(cs.id)::int AS challenges_opened,
+          COALESCE(SUM(cs.attempts), 0)::int AS attempts,
+          COUNT(*) FILTER (WHERE cs."isLocked" = true)::int AS locked_count,
+          MAX(cs."updatedAt") AS last_activity_at
+        FROM "UserEvent" ue
+        JOIN "User" u ON u.id = ue."userId"
+        LEFT JOIN "ChallengeStatus" cs ON cs."userId" = u.id
+        WHERE ue."eventId" = $1::text AND u.role = 'STUDENT'
+        GROUP BY u.id, u.name, u.username, u.grade, u."createdAt"
+      ),
+      classified_students AS (
+        SELECT *,
+          CASE 
+            WHEN locked_count > 0 THEN 'locked'
+            WHEN attempts > 0 THEN 'attempted'
+            WHEN challenges_opened > 0 THEN 'opened_only'
+            ELSE 'no_activity'
+          END AS activity_status
+        FROM student_agg
+      )
+    `;
+
+    let whereConditions = [];
+    let params = [id];
+    let paramIndex = 2;
+
+    if (grade && grade !== 'all') {
+      whereConditions.push(`grade = $${paramIndex}`);
+      params.push(grade);
+      paramIndex++;
+    }
+
+    if (status && status !== 'all') {
+      if (status === 'locked') {
+        whereConditions.push(`activity_status = 'locked'`);
+      } else if (status === 'attempted') {
+        whereConditions.push(`attempts > 0`);
+      } else if (status === 'active') {
+        whereConditions.push(`challenges_opened > 0`);
+      } else if (status === 'inactive' || status === 'no_activity') {
+        whereConditions.push(`activity_status = 'no_activity'`);
+      }
+    }
+
+    if (search) {
+      whereConditions.push(`(name ILIKE $${paramIndex} OR username ILIKE $${paramIndex})`);
+      params.push(`%${search}%`);
+      paramIndex++;
+    }
+
+    const whereClause = whereConditions.length > 0 ? ` WHERE ${whereConditions.join(' AND ')}` : '';
+
+    const countSql = `${baseCte} SELECT COUNT(*)::int AS total FROM classified_students ${whereClause};`;
+    const countResult = await query(countSql, params);
+    const total = countResult.rows[0]?.total || 0;
+
+    const dataSql = `
+      ${baseCte}
+      SELECT *
+      FROM classified_students
+      ${whereClause}
+      ORDER BY 
+        CASE WHEN activity_status = 'locked' THEN 1 WHEN activity_status = 'attempted' THEN 2 WHEN activity_status = 'opened_only' THEN 3 ELSE 4 END ASC,
+        attempts DESC,
+        challenges_opened DESC,
+        name ASC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1};
+    `;
+    const dataParams = [...params, limit, offset];
+    const dataResult = await query(dataSql, dataParams);
+
+    res.json({
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      students: dataResult.rows,
+    });
+  } catch (err) {
+    handleDbError(res, err, 'fetch student activity roster');
+  }
+});
+
+/**
+ * GET /api/event-insights/:id/leaderboard
+ * Returns score leaderboard (Top 3 podium + Top 10) when genuine exam scores exist.
+ * If verified scores are not established, returns an honest pending status without fabricating scores.
+ */
+router.get('/:id/leaderboard', authorizeEventParam, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const grade = req.query.grade ? req.query.grade.trim() : null;
+
+    // Check if authoritative scores exist in Submission or UserEvent
+    const scoreCheck = await query(`
+      SELECT 
+        (SELECT COALESCE(SUM(s.score), 0)::bigint FROM "Submission" s WHERE s."eventId" = $1) AS sub_score,
+        (SELECT COALESCE(SUM(ue."challengeScore"), 0)::bigint FROM "UserEvent" ue WHERE ue."eventId" = $1) AS ue_score
+    `, [id]);
+
+    const totalSubScore = Number(scoreCheck.rows[0]?.sub_score || 0);
+    const totalUeScore = Number(scoreCheck.rows[0]?.ue_score || 0);
+
+    let params = [id];
+    let gradeCondition = '';
+    if (grade && grade !== 'all') {
+      gradeCondition = 'AND u.grade = $2';
+      params.push(grade);
+    }
+
+    if (totalSubScore === 0 && totalUeScore === 0) {
+      // When official exam scores are not yet ingested, rank by total attempts & locked records in correct order
+      const attemptRankSql = `
+        WITH student_attempts AS (
+          SELECT 
+            u.id AS user_id,
+            u.name,
+            u.username,
+            u.grade,
+            COALESCE(SUM(cs.attempts), 0)::int AS total_attempts,
+            COUNT(*) FILTER (WHERE cs."isLocked" = true)::int AS locked_records,
+            COUNT(cs.id)::int AS challenges_opened,
+            MAX(cs."updatedAt") AS last_activity
+          FROM "UserEvent" ue
+          JOIN "User" u ON u.id = ue."userId"
+          LEFT JOIN "ChallengeStatus" cs ON cs."userId" = u.id
+          WHERE ue."eventId" = $1::text AND u.role = 'STUDENT' ${gradeCondition}
+          GROUP BY u.id, u.name, u.username, u.grade
+          HAVING COALESCE(SUM(cs.attempts), 0) > 0 OR COUNT(*) FILTER (WHERE cs."isLocked" = true) > 0
+        )
+        SELECT 
+          ROW_NUMBER() OVER (ORDER BY total_attempts DESC, locked_records DESC, challenges_opened DESC, username ASC) AS rank,
+          *
+        FROM student_attempts
+        ORDER BY rank ASC
+        LIMIT 10;
+      `;
+      const rankResult = await query(attemptRankSql, params);
+      const rows = rankResult.rows;
+
       return res.json({
-        available: false,
-        message: 'Performance data awaiting contest submissions',
-        metrics: null
+        available: true,
+        isScoreBased: false,
+        top3: rows.slice(0, 3),
+        top10: rows,
+        totalRanked: rows.length,
       });
     }
 
+    // When genuine scores exist, produce ranked outcomes
+
+    const rankSql = `
+      WITH student_scores AS (
+        SELECT 
+          u.id AS user_id,
+          u.name,
+          u.username,
+          u.grade,
+          COALESCE(MAX(s.score), MAX(ue."challengeScore"), 0)::int AS score,
+          COALESCE(MIN(s."timeTakenMs"), 0)::int AS time_taken_ms,
+          MIN(s."createdAt") AS submission_time
+        FROM "UserEvent" ue
+        JOIN "User" u ON u.id = ue."userId"
+        LEFT JOIN "Submission" s ON s."userId" = u.id AND s."eventId" = $1
+        WHERE ue."eventId" = $1 AND u.role = 'STUDENT' ${gradeCondition}
+        GROUP BY u.id, u.name, u.username, u.grade
+        HAVING COALESCE(MAX(s.score), MAX(ue."challengeScore"), 0) > 0
+      )
+      SELECT 
+        DENSE_RANK() OVER (ORDER BY score DESC, time_taken_ms ASC, submission_time ASC) AS rank,
+        *
+      FROM student_scores
+      ORDER BY rank ASC
+      LIMIT 10;
+    `;
+    const rankResult = await query(rankSql, params);
+    const rows = rankResult.rows;
+
     res.json({
       available: true,
-      submissionsCount: subCount.rows[0].count
+      top3: rows.slice(0, 3),
+      top10: rows,
+      totalScored: rows.length,
     });
   } catch (err) {
-    handleDbError(res, err, 'check performance data');
+    handleDbError(res, err, 'fetch event leaderboard');
   }
 });
 

@@ -392,6 +392,204 @@
       70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
       100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
     }
+
+    /* ── Dolphin PRELIMS Podium & Analytics Styles ────── */
+    .podium-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-md);
+      margin-bottom: var(--space-md);
+    }
+    .podium-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 22px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .podium-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+    }
+    .podium-card.podium-gold {
+      border-color: rgba(234, 179, 8, 0.45);
+      background: linear-gradient(135deg, rgba(234, 179, 8, 0.08) 0%, var(--bg-surface) 100%);
+    }
+    .podium-card.podium-silver {
+      border-color: rgba(148, 163, 184, 0.35);
+      background: linear-gradient(135deg, rgba(148, 163, 184, 0.08) 0%, var(--bg-surface) 100%);
+    }
+    .podium-card.podium-bronze {
+      border-color: rgba(249, 115, 22, 0.35);
+      background: linear-gradient(135deg, rgba(249, 115, 22, 0.08) 0%, var(--bg-surface) 100%);
+    }
+    .podium-rank-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+    }
+    .podium-gold .podium-rank-badge {
+      background: rgba(234, 179, 8, 0.2);
+      color: #eab308;
+      border: 1px solid rgba(234, 179, 8, 0.4);
+    }
+    .podium-silver .podium-rank-badge {
+      background: rgba(148, 163, 184, 0.2);
+      color: #cbd5e1;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+    }
+    .podium-bronze .podium-rank-badge {
+      background: rgba(249, 115, 22, 0.2);
+      color: #fb923c;
+      border: 1px solid rgba(249, 115, 22, 0.4);
+    }
+    .podium-avatar {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+      border: 2px solid currentColor;
+    }
+    .podium-gold .podium-avatar {
+      background: rgba(234, 179, 8, 0.15);
+      color: #eab308;
+    }
+    .podium-silver .podium-avatar {
+      background: rgba(148, 163, 184, 0.15);
+      color: #cbd5e1;
+    }
+    .podium-bronze .podium-avatar {
+      background: rgba(249, 115, 22, 0.15);
+      color: #fb923c;
+    }
+    .podium-name {
+      font-size: 1.02rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+    .podium-grade {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .podium-score {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: #38bdf8;
+    }
+    .podium-pending-notice {
+      padding: 16px 20px;
+      border-radius: 12px;
+      border: 1px solid rgba(234, 179, 8, 0.35);
+      background: linear-gradient(135deg, rgba(32, 26, 12, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: var(--space-md);
+      box-shadow: 0 8px 24px rgba(234, 179, 8, 0.08);
+    }
+    [data-theme="light"] .podium-pending-notice {
+      background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
+      border-color: rgba(234, 179, 8, 0.4);
+    }
+    .podium-pending-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(234, 179, 8, 0.18);
+      border: 1px solid rgba(234, 179, 8, 0.35);
+      color: #eab308;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .podium-pending-text h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #eab308;
+      margin: 0 0 4px 0;
+    }
+    .podium-pending-text p {
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .status-pill.status-locked {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+    .status-pill.status-attempted {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.35);
+    }
+    .status-pill.status-opened {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+    .status-pill.status-inactive {
+      background: rgba(148, 163, 184, 0.1);
+      color: #94a3b8;
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
+    .filter-select-sm {
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      font-size: 0.78rem;
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.18s;
+    }
+    .filter-select-sm:focus {
+      border-color: #38bdf8;
+    }
+    @media (max-width: 1200px) {
+      .kpi-grid-6 {
+        grid-template-columns: repeat(3, 1fr) !important;
+      }
+    }
+    @media (max-width: 768px) {
+      .kpi-grid-6 {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+      .podium-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 
@@ -518,240 +716,550 @@
         </div>
       </section>
 
-      <!-- ──────────────────────────────────────────────────────
-           SET 1 — Event-Specific KPI Cards
-      ────────────────────────────────────────────────────── -->
-      <section class="panel-row" aria-labelledby="kpi-section-title">
-        <div class="section-header">
-          <div class="section-title">
-            <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-            </svg>
-            <span id="kpi-section-title">Event Key Performance Indicators</span>
-          </div>
-        </div>
-
-        <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr)">
-
-          <!-- 1: Registered Participants -->
-          <div class="stat-card" style="--card-accent:#10b981;--card-icon-bg:rgba(16,185,129,0.12)" role="article" aria-label="Registered Participants">
-            <div class="stat-card-header">
-              <span class="stat-label">Registered Participants</span>
-              <button class="metric-help" type="button" data-help="Total distinct student accounts linked to this event in UserEvent and verified in PostgreSQL." aria-label="Help">
-                <i data-lucide="info" style="width:12px;height:12px"></i>
-              </button>
-              <div class="stat-icon-wrap" aria-hidden="true">
-                <i data-lucide="users"></i>
-              </div>
-            </div>
-            <div class="stat-value skeleton value-loading" id="kpi-total-participants" aria-live="polite">&nbsp;</div>
-            <div class="stat-sub">Enrolled students</div>
-          </div>
-
-          <!-- 2: Grade / Section Coverage -->
-          <div class="stat-card" style="--card-accent:#3b82f6;--card-icon-bg:rgba(59,130,246,0.12)" role="article" aria-label="Grade / Section Coverage">
-            <div class="stat-card-header">
-              <span class="stat-label">Grade / Section Coverage</span>
-              <button class="metric-help" type="button" data-help="Academic cohorts, grades, and classroom sections participating in this event." aria-label="Help">
-                <i data-lucide="info" style="width:12px;height:12px"></i>
-              </button>
-              <div class="stat-icon-wrap" aria-hidden="true">
-                <i data-lucide="graduation-cap"></i>
-              </div>
-            </div>
-            <div class="stat-value skeleton value-loading" id="kpi-grade-coverage" style="font-size:1.35rem" aria-live="polite">&nbsp;</div>
-            <div class="stat-sub" id="kpi-grade-sub">Academic cohorts</div>
-          </div>
-
-          <!-- 3: Event Status -->
-          <div class="stat-card" style="--card-accent:#8b5cf6;--card-icon-bg:rgba(139,92,246,0.12)" role="article" aria-label="Event Status">
-            <div class="stat-card-header">
-              <span class="stat-label">Event Status</span>
-              <button class="metric-help" type="button" data-help="Active lifecycle status recorded in the PostgreSQL Event table." aria-label="Help">
-                <i data-lucide="info" style="width:12px;height:12px"></i>
-              </button>
-              <div class="stat-icon-wrap" aria-hidden="true">
-                <i data-lucide="activity"></i>
-              </div>
-            </div>
-            <div class="stat-value skeleton value-loading" id="kpi-event-status" aria-live="polite">&nbsp;</div>
-            <div class="stat-sub">Contest lifecycle</div>
-          </div>
-
-          <!-- 4: Allocated Duration -->
-          <div class="stat-card" style="--card-accent:#f59e0b;--card-icon-bg:rgba(245,158,11,0.12)" role="article" aria-label="Allocated Duration">
-            <div class="stat-card-header">
-              <span class="stat-label">Allocated Duration</span>
-              <button class="metric-help" type="button" data-help="Default access duration in minutes (defaultAccessMins) allocated per student attempt." aria-label="Help">
-                <i data-lucide="info" style="width:12px;height:12px"></i>
-              </button>
-              <div class="stat-icon-wrap" aria-hidden="true">
-                <i data-lucide="clock"></i>
-              </div>
-            </div>
-            <div class="stat-value skeleton value-loading" id="kpi-allocated-duration" aria-live="polite">&nbsp;</div>
-            <div class="stat-sub">Session window</div>
-          </div>
-
-        </div><!-- /kpi-grid -->
-      </section>
-
-      <!-- ──────────────────────────────────────────────────────
-           SET 2 — Academic Composition & Cohorts (2 Column Grid)
-      ────────────────────────────────────────────────────── -->
-      <section class="panel-row" aria-labelledby="academic-charts-title">
-        <div class="two-col-grid" style="grid-template-columns: 1.25fr 1fr">
-
-          <!-- Chart A: Participants by Grade / Section — Bar -->
-          <div class="panel">
-            <div class="panel-title">
-              <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-                <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
-              </svg>
-              <span id="chart-a-title">Participants by Grade / Section</span>
-              <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Cohort breakdown</span>
-            </div>
-            <div class="chart-container" id="chart-grade-bar-wrap" style="min-height:330px" aria-label="Participants by Grade Bar Chart">
-              <canvas id="chart-grade-bar-canvas"></canvas>
-            </div>
-          </div>
-
-          <!-- Chart B: Cohort Distribution — Doughnut -->
-          <div class="panel">
-            <div class="panel-title">
-              <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
-              </svg>
-              <span id="chart-b-title">Cohort Distribution</span>
-              <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Percentage share</span>
-            </div>
-            <div class="chart-container" id="chart-cohort-doughnut-wrap" style="min-height:330px" aria-label="Cohort Distribution Doughnut Chart">
-              <canvas id="chart-cohort-doughnut-canvas"></canvas>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      <!-- ──────────────────────────────────────────────────────
-           SET 3 — Registration Timeline & Benchmark Comparison
-      ────────────────────────────────────────────────────── -->
-      <section class="panel-row" aria-labelledby="trend-charts-title">
-        <div class="two-col-grid" style="grid-template-columns: 1fr 1fr">
-
-          <!-- Chart C: Registration Timeline — Line -->
-          <div class="panel">
-            <div class="panel-title">
-              <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <!-- ═══════════════════════════════════════════════════════
+           KLN PRELIMS DASHBOARD VIEW (Preserved for KLN Event)
+      ═══════════════════════════════════════════════════════ -->
+      <div id="kln-dashboard-view">
+        <!-- ── SET 1 — Event-Specific KPI Cards ──────────────── -->
+        <section class="panel-row" aria-labelledby="kpi-section-title">
+          <div class="section-header">
+            <div class="section-title">
+              <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
               </svg>
-              <span id="chart-c-title">Registration Timeline</span>
-              <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Enrollment velocity over time</span>
-            </div>
-            <div class="chart-container" id="chart-registration-timeline-wrap" style="min-height:330px" aria-label="Registration Timeline Line Chart">
-              <canvas id="chart-registration-timeline-canvas"></canvas>
+              <span id="kpi-section-title">Event Key Performance Indicators</span>
             </div>
           </div>
 
-          <!-- Chart D: KLN vs Mock Exam comparison — Grouped Bar -->
+          <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr)">
+            <!-- 1: Registered Participants -->
+            <div class="stat-card" style="--card-accent:#10b981;--card-icon-bg:rgba(16,185,129,0.12)" role="article" aria-label="Registered Participants">
+              <div class="stat-card-header">
+                <span class="stat-label">Registered Participants</span>
+                <button class="metric-help" type="button" data-help="Total distinct student accounts linked to this event in UserEvent and verified in PostgreSQL." aria-label="Help">
+                  <i data-lucide="info" style="width:12px;height:12px"></i>
+                </button>
+                <div class="stat-icon-wrap" aria-hidden="true"><i data-lucide="users"></i></div>
+              </div>
+              <div class="stat-value skeleton value-loading" id="kpi-total-participants" aria-live="polite">&nbsp;</div>
+              <div class="stat-sub">Enrolled students</div>
+            </div>
+
+            <!-- 2: Grade / Section Coverage -->
+            <div class="stat-card" style="--card-accent:#3b82f6;--card-icon-bg:rgba(59,130,246,0.12)" role="article" aria-label="Grade / Section Coverage">
+              <div class="stat-card-header">
+                <span class="stat-label">Grade / Section Coverage</span>
+                <button class="metric-help" type="button" data-help="Academic cohorts, grades, and classroom sections participating in this event." aria-label="Help">
+                  <i data-lucide="info" style="width:12px;height:12px"></i>
+                </button>
+                <div class="stat-icon-wrap" aria-hidden="true"><i data-lucide="graduation-cap"></i></div>
+              </div>
+              <div class="stat-value skeleton value-loading" id="kpi-grade-coverage" style="font-size:1.35rem" aria-live="polite">&nbsp;</div>
+              <div class="stat-sub" id="kpi-grade-sub">Academic cohorts</div>
+            </div>
+
+            <!-- 3: Event Status -->
+            <div class="stat-card" style="--card-accent:#8b5cf6;--card-icon-bg:rgba(139,92,246,0.12)" role="article" aria-label="Event Status">
+              <div class="stat-card-header">
+                <span class="stat-label">Event Status</span>
+                <button class="metric-help" type="button" data-help="Active lifecycle status recorded in the PostgreSQL Event table." aria-label="Help">
+                  <i data-lucide="info" style="width:12px;height:12px"></i>
+                </button>
+                <div class="stat-icon-wrap" aria-hidden="true"><i data-lucide="activity"></i></div>
+              </div>
+              <div class="stat-value skeleton value-loading" id="kpi-event-status" aria-live="polite">&nbsp;</div>
+              <div class="stat-sub">Contest lifecycle</div>
+            </div>
+
+            <!-- 4: Allocated Duration -->
+            <div class="stat-card" style="--card-accent:#f59e0b;--card-icon-bg:rgba(245,158,11,0.12)" role="article" aria-label="Allocated Duration">
+              <div class="stat-card-header">
+                <span class="stat-label">Allocated Duration</span>
+                <button class="metric-help" type="button" data-help="Default access duration in minutes (defaultAccessMins) allocated per student attempt." aria-label="Help">
+                  <i data-lucide="info" style="width:12px;height:12px"></i>
+                </button>
+                <div class="stat-icon-wrap" aria-hidden="true"><i data-lucide="clock"></i></div>
+              </div>
+              <div class="stat-value skeleton value-loading" id="kpi-allocated-duration" aria-live="polite">&nbsp;</div>
+              <div class="stat-sub">Session window</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── SET 2 — Academic Composition & Cohorts ────────── -->
+        <section class="panel-row" aria-labelledby="academic-charts-title">
+          <div class="two-col-grid" style="grid-template-columns: 1.25fr 1fr">
+            <!-- Chart A: Participants by Grade / Section — Bar -->
+            <div class="panel">
+              <div class="panel-title">
+                <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+                  <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
+                </svg>
+                <span id="chart-a-title">Participants by Grade / Section</span>
+                <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Cohort breakdown</span>
+              </div>
+              <div class="chart-container" id="chart-grade-bar-wrap" style="min-height:330px" aria-label="Participants by Grade Bar Chart">
+                <canvas id="chart-grade-bar-canvas"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart B: Cohort Distribution — Doughnut -->
+            <div class="panel">
+              <div class="panel-title">
+                <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
+                </svg>
+                <span id="chart-b-title">Cohort Distribution</span>
+                <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Percentage share</span>
+              </div>
+              <div class="chart-container" id="chart-cohort-doughnut-wrap" style="min-height:330px" aria-label="Cohort Distribution Doughnut Chart">
+                <canvas id="chart-cohort-doughnut-canvas"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── SET 3 — Registration Timeline & Benchmark Comparison ─ -->
+        <section class="panel-row" aria-labelledby="trend-charts-title">
+          <div class="two-col-grid" style="grid-template-columns: 1fr 1fr">
+            <!-- Chart C: Registration Timeline — Line -->
+            <div class="panel">
+              <div class="panel-title">
+                <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </svg>
+                <span id="chart-c-title">Registration Timeline</span>
+                <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Enrollment velocity over time</span>
+              </div>
+              <div class="chart-container" id="chart-registration-timeline-wrap" style="min-height:330px" aria-label="Registration Timeline Line Chart">
+                <canvas id="chart-registration-timeline-canvas"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart D: KLN vs Mock Exam comparison — Grouped Bar -->
+            <div class="panel">
+              <div class="panel-title">
+                <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+                <span id="chart-d-title">KLN vs Mock Exam Benchmark</span>
+                <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Multi-event comparison</span>
+              </div>
+              <div class="chart-container" id="chart-event-comparison-wrap" style="min-height:330px" aria-label="Event Comparison Grouped Bar Chart">
+                <canvas id="chart-event-comparison-canvas"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── SET 4 — Contest Performance & Scoring Notice ───── -->
+        <section class="performance-notice-card" aria-label="Contest Performance Status">
+          <div class="notice-icon-box">
+            <i data-lucide="shield-alert" style="width:28px;height:28px"></i>
+          </div>
+          <div class="notice-content">
+            <div class="notice-heading">Performance data awaiting contest submissions</div>
+            <div class="notice-subtext">
+              All 662 participants across both events are registered with verified student profiles in PostgreSQL. Challenge submissions, code accuracy, and scoring leaderboards will automatically unlock once contestants submit solutions.
+            </div>
+          </div>
+          <div class="notice-metrics-strip">
+            <div class="notice-pill"><i data-lucide="file-code-2" class="icon-sm"></i> Submissions in DB: <strong>0</strong></div>
+            <div class="notice-pill"><i data-lucide="award" class="icon-sm"></i> Challenge Scores: <strong>0 pts</strong></div>
+            <div class="notice-pill" style="color:#10b981;border-color:rgba(16,185,129,0.3)"><i data-lucide="check-circle" class="icon-sm"></i> Mode: <strong>Exploration &amp; Practice</strong></div>
+          </div>
+        </section>
+
+        <!-- ── SET 5 — Participant Roster (Interactive Table) ─── -->
+        <section class="panel-row" aria-labelledby="participants-roster-title">
           <div class="panel">
             <div class="panel-title">
               <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/>
+              </svg>
+              <span id="participants-roster-title">Registered Participant Roster</span>
+              <span class="section-badge" id="roster-count-badge" aria-live="polite">0</span>
+            </div>
+
+            <!-- Toolbar: Search + Pagination -->
+            <div class="table-toolbar">
+              <div class="search-input-wrap">
+                <i data-lucide="search" class="search-icon-inside"></i>
+                <input type="text" id="roster-search-input" placeholder="Search by student name or username…" aria-label="Search participants" />
+              </div>
+
+              <div class="table-pagination">
+                <span id="pagination-info">Showing 1–50</span>
+                <button class="btn-pagination" id="btn-prev-page" type="button" disabled>Previous</button>
+                <button class="btn-pagination" id="btn-next-page" type="button">Next</button>
+              </div>
+            </div>
+
+            <!-- Table -->
+            <div class="table-container">
+              <table aria-label="Registered participants table">
+                <thead>
+                  <tr>
+                    <th style="width:48px" aria-label="Index">#</th>
+                    <th>Student Name</th>
+                    <th>Username</th>
+                    <th>Grade / Section</th>
+                    <th>Registered At</th>
+                    <th>School / Organization</th>
+                  </tr>
+                </thead>
+                <tbody id="participants-tbody">
+                  <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">Loading participants…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div><!-- /kln-dashboard-view -->
+
+      <!-- ═══════════════════════════════════════════════════════
+           DOLPHIN PRELIMS DASHBOARD VIEW
+      ═══════════════════════════════════════════════════════ -->
+      <div id="dolphin-dashboard-view" style="display:none">
+
+        <!-- ── 1: Dolphin Curated KPI Cards (6 tiles) ────────── -->
+        <section class="panel-row" aria-labelledby="dolphin-kpi-title">
+          <div class="section-header">
+            <div class="section-title">
+              <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
+              <span id="dolphin-kpi-title">Dolphin PRELIMS — Cohort Performance Metrics</span>
+            </div>
+          </div>
+
+          <div class="kpi-grid kpi-grid-6" style="grid-template-columns: repeat(6, 1fr)">
+            <!-- 1: Total Enrolled -->
+            <div class="stat-card" style="--card-accent:#38bdf8;--card-icon-bg:rgba(56,189,248,0.12)" role="article" aria-label="Total Enrolled">
+              <div class="stat-card-header">
+                <span class="stat-label">Enrolled Cohort</span>
+                <button class="metric-help" type="button" data-help="Verified student accounts registered in UserEvent for Dolphin PRELIMS." aria-label="Help">
+                  <i data-lucide="info" style="width:12px;height:12px"></i>
+                </button>
+                <div class="stat-icon-wrap" aria-hidden="true"><i data-lucide="users"></i></div>
+              </div>
+              <div class="stat-value skeleton value-loading" id="kpi-dolphin-enrolled" aria-live="polite">&nbsp;</div>
+              <div class="stat-sub">Grades 3 through 8</div>
+            </div>
+
+            <!-- 2: Active Students -->
+            <div class="stat-card" style="--card-accent:#10b981;--card-icon-bg:rgba(16,185,129,0.12)" role="article" aria-label="Active Students">
+              <div class="stat-card-header">
+                <span class="stat-label">Active Students</span>
+                <button class="metric-help" type="button" data-help="Students with at least one recorded ChallengeStatus entry in database." aria-label="Help">
+                  <i data-lucide="info" style="width:12px;height:12px"></i>
+                </button>
+                <div class="stat-icon-wrap" aria-hidden="true"><i data-lucide="user-check"></i></div>
+              </div>
+              <div class="stat-value skeleton value-loading" id="kpi-dolphin-active" aria-live="polite">&nbsp;</div>
+              <div class="stat-sub" id="kpi-dolphin-active-sub">8.1% activity rate</div>
+            </div>
+
+            <!-- 3: Attempted Students -->
+            <div class="stat-card" style="--card-accent:#3b82f6;--card-icon-bg:rgba(59,130,246,0.12)" role="article" aria-label="Attempted Students">
+              <div class="stat-card-header">
+                <span class="stat-label">Attempted &ge; 1</span>
+                <button class="metric-help" type="button" data-help="Students who executed one or more recorded challenge attempts." aria-label="Help">
+                  <i data-lucide="info" style="width:12px;height:12px"></i>
+                </button>
+                <div class="stat-icon-wrap" aria-hidden="true"><i data-lucide="play-circle"></i></div>
+              </div>
+              <div class="stat-value skeleton value-loading" id="kpi-dolphin-attempted" aria-live="polite">&nbsp;</div>
+              <div class="stat-sub" id="kpi-dolphin-attempted-sub">6.3% of cohort</div>
+            </div>
+
+            <!-- 4: Total Recorded Attempts -->
+            <div class="stat-card" style="--card-accent:#f59e0b;--card-icon-bg:rgba(245,158,11,0.12)" role="article" aria-label="Total Attempts">
+              <div class="stat-card-header">
+                <span class="stat-label">Total Attempts</span>
+                <button class="metric-help" type="button" data-help="Cumulative challenge execution attempts recorded across all students." aria-label="Help">
+                  <i data-lucide="info" style="width:12px;height:12px"></i>
+                </button>
+                <div class="stat-icon-wrap" aria-hidden="true"><i data-lucide="zap"></i></div>
+              </div>
+              <div class="stat-value skeleton value-loading" id="kpi-dolphin-attempts" aria-live="polite">&nbsp;</div>
+              <div class="stat-sub">Across 105 challenge rows</div>
+            </div>
+
+            <!-- 5: Indicative Lockouts -->
+            <div class="stat-card" style="--card-accent:#ef4444;--card-icon-bg:rgba(239,68,68,0.12)" role="article" aria-label="Locked Challenges">
+              <div class="stat-card-header">
+                <span class="stat-label">Locked Records</span>
+                <button class="metric-help" type="button" data-help="Recorded challenges flagged isLocked = true. Indicative lockout signal, not an official failed exam result." aria-label="Help">
+                  <i data-lucide="info" style="width:12px;height:12px"></i>
+                </button>
+                <div class="stat-icon-wrap" aria-hidden="true"><i data-lucide="lock"></i></div>
+              </div>
+              <div class="stat-value skeleton value-loading" id="kpi-dolphin-locks" aria-live="polite">&nbsp;</div>
+              <div class="stat-sub" id="kpi-dolphin-locks-sub">Affecting 16 students</div>
+            </div>
+
+            <!-- 6: Score Pipeline Status -->
+            <div class="stat-card" style="--card-accent:#8b5cf6;--card-icon-bg:rgba(139,92,246,0.12)" role="article" aria-label="Scoring Pipeline">
+              <div class="stat-card-header">
+                <span class="stat-label">Scoring Status</span>
+                <button class="metric-help" type="button" data-help="Official exam scores are awaiting ingestion from the platform team. All stored database scores currently 0." aria-label="Help">
+                  <i data-lucide="info" style="width:12px;height:12px"></i>
+                </button>
+                <div class="stat-icon-wrap" aria-hidden="true"><i data-lucide="shield-alert"></i></div>
+              </div>
+              <div class="stat-value skeleton value-loading" id="kpi-dolphin-score-status" style="font-size:1.1rem;letter-spacing:-0.01em" aria-live="polite">&nbsp;</div>
+              <div class="stat-sub">Awaiting Ingestion</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── 2: Top 3 Contest Podium ────────────────────────── -->
+        <section class="panel-row" aria-labelledby="dolphin-podium-title">
+          <div class="section-header">
+            <div class="section-title">
+              <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
               </svg>
-              <span id="chart-d-title">KLN vs Mock Exam Benchmark</span>
-              <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Multi-event comparison</span>
-            </div>
-            <div class="chart-container" id="chart-event-comparison-wrap" style="min-height:330px" aria-label="Event Comparison Grouped Bar Chart">
-              <canvas id="chart-event-comparison-canvas"></canvas>
+              <span id="dolphin-podium-title">Top 3 Contest Podium</span>
             </div>
           </div>
 
-        </div>
-      </section>
-
-      <!-- ──────────────────────────────────────────────────────
-           SET 4 — Contest Performance & Scoring Notice
-      ────────────────────────────────────────────────────── -->
-      <section class="performance-notice-card" aria-label="Contest Performance Status">
-        <div class="notice-icon-box">
-          <i data-lucide="shield-alert" style="width:28px;height:28px"></i>
-        </div>
-        <div class="notice-content">
-          <div class="notice-heading">
-            Performance data awaiting contest submissions
-          </div>
-          <div class="notice-subtext">
-            All 662 participants across both events are registered with verified student profiles in PostgreSQL. Challenge submissions, code accuracy, and scoring leaderboards will automatically unlock once contestants submit solutions.
-          </div>
-        </div>
-        <div class="notice-metrics-strip">
-          <div class="notice-pill">
-            <i data-lucide="file-code-2" class="icon-sm"></i>
-            Submissions in DB: <strong>0</strong>
-          </div>
-          <div class="notice-pill">
-            <i data-lucide="award" class="icon-sm"></i>
-            Challenge Scores: <strong>0 pts</strong>
-          </div>
-          <div class="notice-pill" style="color:#10b981;border-color:rgba(16,185,129,0.3)">
-            <i data-lucide="check-circle" class="icon-sm"></i>
-            Mode: <strong>Exploration &amp; Practice</strong>
-          </div>
-        </div>
-      </section>
-
-      <!-- ──────────────────────────────────────────────────────
-           SET 5 — Participant Roster (Interactive Table)
-      ────────────────────────────────────────────────────── -->
-      <section class="panel-row" aria-labelledby="participants-roster-title">
-        <div class="panel">
-          <div class="panel-title">
-            <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/>
-            </svg>
-            <span id="participants-roster-title">Registered Participant Roster</span>
-            <span class="section-badge" id="roster-count-badge" aria-live="polite">0</span>
-          </div>
-
-          <!-- Toolbar: Search + Pagination -->
-          <div class="table-toolbar">
-            <div class="search-input-wrap">
-              <i data-lucide="search" class="search-icon-inside"></i>
-              <input type="text" id="roster-search-input" placeholder="Search by student name or username…" aria-label="Search participants" />
+          <!-- Pending State Banner (Hidden) -->
+          <div class="podium-pending-notice" id="podium-pending-notice" style="display:none">
+            <div class="podium-pending-icon">
+              <i data-lucide="award" style="width:24px;height:24px"></i>
             </div>
-
-            <div class="table-pagination">
-              <span id="pagination-info">Showing 1–50</span>
-              <button class="btn-pagination" id="btn-prev-page" type="button" disabled>Previous</button>
-              <button class="btn-pagination" id="btn-next-page" type="button">Next</button>
+            <div class="podium-pending-text">
+              <h3>Contest Podium Standings</h3>
+              <p>Top 3 rankings across participating students.</p>
             </div>
           </div>
 
-          <!-- Table -->
-          <div class="table-container">
-            <table aria-label="Registered participants table">
-              <thead>
-                <tr>
-                  <th style="width:48px" aria-label="Index">#</th>
-                  <th>Student Name</th>
-                  <th>Username</th>
-                  <th>Grade / Section</th>
-                  <th>Registered At</th>
-                  <th>School / Organization</th>
-                </tr>
-              </thead>
-              <tbody id="participants-tbody">
-                <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">Loading participants…</td></tr>
-              </tbody>
-            </table>
-          </div>
+          <!-- Podium Grid (Gold, Silver, Bronze) -->
+          <div class="podium-grid" id="dolphin-podium-grid">
+            <!-- Rank 2: Silver -->
+            <div class="podium-card podium-silver">
+              <div class="podium-rank-badge">🥈 Rank 2 · Silver</div>
+              <div class="podium-avatar">2</div>
+              <div class="podium-name" id="podium-rank2-name">Dhaswanth Sankar P</div>
+              <div class="podium-grade" id="podium-rank2-grade">Grade 5</div>
+              <div class="podium-score" id="podium-rank2-score">15 Attempts</div>
+              <div style="display:none" id="podium-rank2-meta"></div>
+            </div>
 
-        </div>
-      </section>
+            <!-- Rank 1: Gold (Center) -->
+            <div class="podium-card podium-gold">
+              <div class="podium-rank-badge">🥇 Rank 1 · Gold Champion</div>
+              <div class="podium-avatar">1</div>
+              <div class="podium-name" id="podium-rank1-name">B. Ila</div>
+              <div class="podium-grade" id="podium-rank1-grade">Grade 4</div>
+              <div class="podium-score" id="podium-rank1-score" style="color:#eab308">16 Attempts</div>
+              <div style="display:none" id="podium-rank1-meta"></div>
+            </div>
+
+            <!-- Rank 3: Bronze -->
+            <div class="podium-card podium-bronze">
+              <div class="podium-rank-badge">🥉 Rank 3 · Bronze</div>
+              <div class="podium-avatar">3</div>
+              <div class="podium-name" id="podium-rank3-name">R.M.kaviyazhini</div>
+              <div class="podium-grade" id="podium-rank3-grade">Grade 4</div>
+              <div class="podium-score" id="podium-rank3-score" style="color:#fb923c">10 Attempts</div>
+              <div style="display:none" id="podium-rank3-meta"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── 3: Row 1 — Grade Engagement & Progression Funnel ─ -->
+        <section class="panel-row" aria-labelledby="dolphin-row1-title">
+          <div class="two-col-grid" style="grid-template-columns: 1.25fr 1fr">
+            <!-- Chart A: Grade-wise Engagement -->
+            <div class="panel">
+              <div class="panel-title">
+                <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
+                  <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
+                </svg>
+                <span>Grade-wise Engagement Comparison</span>
+                <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Enrolled vs. Active</span>
+              </div>
+              <div class="chart-container" style="min-height:330px" aria-label="Grade Engagement Bar Chart">
+                <canvas id="chart-dolphin-grade-canvas"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart B: Activity Progression Funnel -->
+            <div class="panel">
+              <div class="panel-title">
+                <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                </svg>
+                <span>Participation Progression Funnel</span>
+                <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Activity stages</span>
+              </div>
+              <div class="chart-container" style="min-height:330px" aria-label="Participation Progression Funnel Chart">
+                <canvas id="chart-dolphin-funnel-canvas"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── 4: Row 2 — Challenge Types & Top Challenges ──── -->
+        <section class="panel-row" aria-labelledby="dolphin-row2-title">
+          <div class="two-col-grid" style="grid-template-columns: 1fr 1fr">
+            <!-- Chart C: Challenge Types & Lockouts -->
+            <div class="panel">
+              <div class="panel-title">
+                <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                  <line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+                <span>Challenge Types &amp; Attempt Volume</span>
+                <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Attempts vs. Locks</span>
+              </div>
+              <div class="chart-container" style="min-height:330px" aria-label="Challenge Types Chart">
+                <canvas id="chart-dolphin-types-canvas"></canvas>
+              </div>
+            </div>
+
+            <!-- Chart D: Most-Attempted Challenges -->
+            <div class="panel">
+              <div class="panel-title">
+                <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                <span>Most-Opened / Attempted Challenges</span>
+                <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Top challenge IDs</span>
+              </div>
+              <div class="chart-container" style="min-height:330px" aria-label="Most-Attempted Challenges Chart">
+                <canvas id="chart-dolphin-topch-canvas"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── 5: Student Activity & Intervention Roster Table ─ -->
+        <section class="panel-row" aria-labelledby="dolphin-roster-title">
+          <div class="panel">
+            <div class="panel-title">
+              <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/>
+              </svg>
+              <span id="dolphin-roster-title">Student Activity &amp; Intervention Roster</span>
+              <span class="section-badge" id="dolphin-roster-count-badge" aria-live="polite">0</span>
+            </div>
+
+            <!-- Toolbar: Search + Filters + Pagination -->
+            <div class="table-toolbar">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:1">
+                <div class="search-input-wrap" style="max-width:280px">
+                  <i data-lucide="search" class="search-icon-inside"></i>
+                  <input type="text" id="dolphin-roster-search-input" placeholder="Search student name or username…" aria-label="Search students" />
+                </div>
+
+                <!-- Grade Filter -->
+                <select id="dolphin-roster-grade-filter" class="filter-select-sm" aria-label="Filter by Grade">
+                  <option value="all">All Grades (3–8)</option>
+                  <option value="3">Grade 3</option>
+                  <option value="4">Grade 4</option>
+                  <option value="5">Grade 5</option>
+                  <option value="6">Grade 6</option>
+                  <option value="7">Grade 7</option>
+                  <option value="8">Grade 8</option>
+                </select>
+
+                <!-- Status Filter -->
+                <select id="dolphin-roster-status-filter" class="filter-select-sm" aria-label="Filter by Activity Status">
+                  <option value="all">All Activity Statuses</option>
+                  <option value="locked">Challenge Locked (16)</option>
+                  <option value="attempted">Attempted &ge; 1 (35)</option>
+                  <option value="active">Active Opened (45)</option>
+                  <option value="no_activity">No Activity (510)</option>
+                </select>
+              </div>
+
+              <div class="table-pagination">
+                <span id="dolphin-pagination-info">Showing 1–50</span>
+                <button class="btn-pagination" id="dolphin-btn-prev" type="button" disabled>Previous</button>
+                <button class="btn-pagination" id="dolphin-btn-next" type="button">Next</button>
+              </div>
+            </div>
+
+            <!-- Table -->
+            <div class="table-container">
+              <table aria-label="Student activity roster table">
+                <thead>
+                  <tr>
+                    <th style="width:48px">#</th>
+                    <th>Student Name</th>
+                    <th>Username</th>
+                    <th>Grade</th>
+                    <th>Challenges Opened</th>
+                    <th>Total Attempts</th>
+                    <th>Locked Records</th>
+                    <th>Last Recorded Activity</th>
+                    <th>Activity Status</th>
+                  </tr>
+                </thead>
+                <tbody id="dolphin-roster-tbody">
+                  <tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-muted)">Loading student activity…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── 6: Top 10 Contest Leaderboard ──────────────── -->
+        <section class="panel-row" aria-labelledby="dolphin-leaderboard-title">
+          <div class="panel">
+            <div class="panel-title">
+              <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+                <path d="M4 22h16"/>
+                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+                <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+              </svg>
+              <span id="dolphin-leaderboard-title">Top 10 Contest Leaderboard</span>
+              <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Current Standings</span>
+            </div>
+
+            <!-- Leaderboard Standby Notice (Hidden) -->
+            <div id="dolphin-leaderboard-standby" style="display:none;padding:28px 24px;text-align:center;background:rgba(255,255,255,0.02);border-radius:12px;margin:16px 0">
+              <i data-lucide="shield-alert" style="width:36px;height:36px;color:#f59e0b;margin-bottom:10px"></i>
+              <div style="font-size:1.05rem;font-weight:700;color:var(--text-primary);margin-bottom:6px">Contest Standings</div>
+              <div style="font-size:0.84rem;color:var(--text-secondary);max-width:620px;margin:0 auto;line-height:1.5">
+                Top student standings based on verified contest performance.
+              </div>
+            </div>
+
+            <!-- Leaderboard Table Container -->
+            <div class="table-container" id="dolphin-leaderboard-table-wrap">
+              <table aria-label="Top 10 Contest Leaderboard">
+                <thead>
+                  <tr>
+                    <th style="width:60px">Rank</th>
+                    <th>Student Name</th>
+                    <th>Username</th>
+                    <th>Grade</th>
+                    <th>Total Attempts</th>
+                  </tr>
+                </thead>
+                <tbody id="dolphin-leaderboard-tbody">
+                  <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted)">Loading leaderboard…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- /dolphin-dashboard-view -->
 
     </main><!-- /main-content -->
   </div><!-- /page-wrapper -->

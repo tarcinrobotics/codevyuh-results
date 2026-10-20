@@ -996,3 +996,381 @@ export function buildEventComparisonChart(canvasId, compData) {
   });
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+// DOLPHIN PRELIMS SPECIFIC CHART BUILDERS
+// ═════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Chart A: Grade-wise Engagement Comparison — Grouped Bar
+ * @param {string} canvasId
+ * @param {Array} gradeData [{grade: '3', enrolled: 103, active_students: 12, total_attempts: 11, ...}]
+ */
+export function buildGradeEngagementChart(canvasId, gradeData) {
+  const ctx = getCleanCanvas(canvasId);
+  if (!ctx) return null;
+
+  const labels = gradeData.map(d => `Grade ${d.grade}`);
+  const enrolled = gradeData.map(d => parseInt(d.enrolled, 10) || 0);
+  const active = gradeData.map(d => parseInt(d.active_students, 10) || 0);
+  const attempts = gradeData.map(d => parseInt(d.total_attempts, 10) || 0);
+
+  return new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Enrolled Students',
+          data: enrolled,
+          backgroundColor: hexAlpha('#3b82f6', 0.65),
+          borderColor: '#3b82f6',
+          borderWidth: 1.5,
+          borderRadius: 4,
+          maxBarThickness: 28,
+        },
+        {
+          label: 'Active Students',
+          data: active,
+          backgroundColor: hexAlpha('#10b981', 0.85),
+          borderColor: '#10b981',
+          borderWidth: 1.5,
+          borderRadius: 4,
+          maxBarThickness: 28,
+        },
+        {
+          label: 'Total Attempts',
+          data: attempts,
+          backgroundColor: hexAlpha('#f59e0b', 0.85),
+          borderColor: '#f59e0b',
+          borderWidth: 1.5,
+          borderRadius: 4,
+          maxBarThickness: 28,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'top',
+          align: 'end',
+          labels: {
+            usePointStyle: true,
+            pointStyle: 'rectRounded',
+            boxWidth: 10,
+            padding: 12,
+          },
+        },
+        tooltip: {
+          callbacks: {
+            title: (items) => `${items[0].label} Engagement`,
+            afterBody: (items) => {
+              const idx = items[0].dataIndex;
+              const enr = enrolled[idx];
+              const act = active[idx];
+              const pct = enr > 0 ? ((act / enr) * 100).toFixed(1) : '0.0';
+              const lck = gradeData[idx]?.locked_records || 0;
+              return [
+                `  Participation Rate : ${pct}% of grade`,
+                `  Locked Records     : ${lck}`,
+              ];
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { weight: '600' } },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(255,255,255,0.06)' },
+          title: {
+            display: true,
+            text: 'Student Count / Attempts',
+            color: '#8fa3bf',
+            font: { size: 10 },
+          },
+          ticks: { precision: 0 },
+        },
+      },
+    },
+  });
+}
+
+/**
+ * Chart B: Activity Progression Funnel — Horizontal Bar
+ * @param {string} canvasId
+ * @param {Object} kpiData {enrolled: 555, activeStudents: 45, attemptedStudents: 35, studentsWithLocks: 16}
+ */
+export function buildActivityFunnelChart(canvasId, kpiData) {
+  const ctx = getCleanCanvas(canvasId);
+  if (!ctx) return null;
+
+  const enrolled = kpiData.enrolled || 555;
+  const active = kpiData.activeStudents || 45;
+  const attempted = kpiData.attemptedStudents || 35;
+  const locked = kpiData.studentsWithLocks || 16;
+
+  const labels = [
+    'Enrolled Cohort',
+    'Recorded Activity (≥1 Opened)',
+    'Attempted (≥1 Attempt)',
+    'Indicative Lockouts (≥1 Lock)',
+  ];
+
+  const data = [enrolled, active, attempted, locked];
+  const barColors = [
+    hexAlpha('#38bdf8', 0.85),
+    hexAlpha('#3b82f6', 0.85),
+    hexAlpha('#10b981', 0.85),
+    hexAlpha('#ef4444', 0.85),
+  ];
+  const borderColors = ['#38bdf8', '#3b82f6', '#10b981', '#ef4444'];
+
+  return new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: barColors,
+        borderColor: borderColors,
+        borderWidth: 1.5,
+        borderRadius: 6,
+        borderSkipped: false,
+        maxBarThickness: 32,
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => items[0].label,
+            label: (item) => {
+              const val = item.parsed.x;
+              const pct = enrolled > 0 ? ((val / enrolled) * 100).toFixed(1) : '0.0';
+              return [
+                `  Count: ${val} students`,
+                `  Share of Cohort: ${pct}%`,
+              ];
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          grid: { color: 'rgba(255,255,255,0.06)' },
+          title: {
+            display: true,
+            text: 'Number of Students',
+            color: '#8fa3bf',
+            font: { size: 10 },
+          },
+          ticks: { precision: 0 },
+        },
+        y: {
+          grid: { display: false },
+          ticks: { font: { size: 11, weight: '500' } },
+        },
+      },
+    },
+  });
+}
+
+/**
+ * Chart C: Challenge Types & Attempt Distribution — Horizontal Grouped Bar
+ * @param {string} canvasId
+ * @param {Array} typeData [{challenge_type: 'boolean_circuit', attempts: 101, locked_records: 16, challenge_rows: 61, ...}]
+ */
+export function buildChallengeTypesChart(canvasId, typeData) {
+  const ctx = getCleanCanvas(canvasId);
+  if (!ctx) return null;
+
+  const labels = typeData.map(d => {
+    const raw = d.challenge_type || 'Unknown';
+    return raw.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  });
+
+  const attempts = typeData.map(d => parseInt(d.attempts, 10) || 0);
+  const locked = typeData.map(d => parseInt(d.locked_records, 10) || 0);
+
+  return new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Total Attempts',
+          data: attempts,
+          backgroundColor: hexAlpha('#06b6d4', 0.85),
+          borderColor: '#06b6d4',
+          borderWidth: 1.5,
+          borderRadius: 4,
+          maxBarThickness: 20,
+        },
+        {
+          label: 'Locked Records',
+          data: locked,
+          backgroundColor: hexAlpha('#ef4444', 0.85),
+          borderColor: '#ef4444',
+          borderWidth: 1.5,
+          borderRadius: 4,
+          maxBarThickness: 20,
+        },
+      ],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'top',
+          align: 'end',
+          labels: {
+            usePointStyle: true,
+            pointStyle: 'rectRounded',
+            boxWidth: 10,
+            padding: 12,
+          },
+        },
+        tooltip: {
+          callbacks: {
+            title: (items) => `${items[0].label} Challenges`,
+            afterBody: (items) => {
+              const idx = items[0].dataIndex;
+              const row = typeData[idx];
+              const rowsCount = row?.challenge_rows || 0;
+              const stCount = row?.students || 0;
+              const lockRate = row?.lock_rate || '0.0';
+              return [
+                `  Challenge Rows : ${rowsCount}`,
+                `  Students Opened: ${stCount}`,
+                `  Lockout Ratio  : ${lockRate}% (records locked / rows)`,
+              ];
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          grid: { color: 'rgba(255,255,255,0.06)' },
+          title: {
+            display: true,
+            text: 'Recorded Volume',
+            color: '#8fa3bf',
+            font: { size: 10 },
+          },
+          ticks: { precision: 0 },
+        },
+        y: {
+          grid: { display: false },
+          ticks: { font: { size: 11, weight: '500' } },
+        },
+      },
+    },
+  });
+}
+
+/**
+ * Chart D: Most-Attempted Challenges — Ranked Horizontal Bar
+ * @param {string} canvasId
+ * @param {Array} topChallenges [{challengeId: 'logic-boolean_circuit-001', students_opened: 30, attempts: 50, locked_records: 10}]
+ */
+export function buildTopChallengesChart(canvasId, topChallenges) {
+  const ctx = getCleanCanvas(canvasId);
+  if (!ctx) return null;
+
+  const dataSlice = topChallenges.slice(0, 6);
+  const labels = dataSlice.map(d => {
+    return d.challengeId.replace(/^logic-/, '').replace(/^debug-/, '');
+  });
+
+  const students = dataSlice.map(d => parseInt(d.students_opened, 10) || 0);
+  const attempts = dataSlice.map(d => parseInt(d.attempts, 10) || 0);
+
+  return new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Students Opened',
+          data: students,
+          backgroundColor: hexAlpha('#8b5cf6', 0.85),
+          borderColor: '#8b5cf6',
+          borderWidth: 1.5,
+          borderRadius: 4,
+          maxBarThickness: 18,
+        },
+        {
+          label: 'Total Attempts',
+          data: attempts,
+          backgroundColor: hexAlpha('#f59e0b', 0.85),
+          borderColor: '#f59e0b',
+          borderWidth: 1.5,
+          borderRadius: 4,
+          maxBarThickness: 18,
+        },
+      ],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'top',
+          align: 'end',
+          labels: {
+            usePointStyle: true,
+            pointStyle: 'rectRounded',
+            boxWidth: 10,
+            padding: 12,
+          },
+        },
+        tooltip: {
+          callbacks: {
+            title: (items) => `ID: ${dataSlice[items[0].dataIndex]?.challengeId}`,
+            afterBody: (items) => {
+              const idx = items[0].dataIndex;
+              const lck = dataSlice[idx]?.locked_records || 0;
+              return [`  Locked Records : ${lck}`];
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          grid: { color: 'rgba(255,255,255,0.06)' },
+          title: {
+            display: true,
+            text: 'Count',
+            color: '#8fa3bf',
+            font: { size: 10 },
+          },
+          ticks: { precision: 0 },
+        },
+        y: {
+          grid: { display: false },
+          ticks: { font: { size: 10, family: 'monospace' } },
+        },
+      },
+    },
+  });
+}
+
+
