@@ -163,7 +163,7 @@
 <body>
   <header class="topbar" role="banner">
     <div class="topbar-left">
-      <div class="topbar-logo-wrap">
+      <div class="topbar-logo-wrap" aria-hidden="true">
         <svg viewBox="0 0 24 24"><path d="M4 4h16v12H4zM8 20h8M12 16v4"/></svg>
       </div>
       <div class="topbar-title-group">
@@ -173,20 +173,13 @@
       <div class="topbar-divider"></div>
       <nav class="topbar-nav">
         <a href="/admin-overview" class="nav-link"><i data-lucide="layout-dashboard"></i>Admin Overview</a>
-        <a href="/zone-dashboard" class="nav-link"><i data-lucide="school"></i>School Dashboard</a>
-        <a href="/parent-view" class="nav-link"><i data-lucide="users"></i>Parent View</a>
         <a href="/user-management" class="nav-link active"><i data-lucide="shield-check"></i>User Access</a>
       </nav>
     </div>
     <div class="topbar-right">
-      <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch theme">
+      <button class="theme-toggle-btn" type="button" data-theme-toggle aria-label="Toggle theme">
         <svg data-theme-icon viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
-        <span data-theme-label>Dark Mode</span>
       </button>
-      <div class="powered-by">
-        <span class="powered-by-text">Powered by</span>
-        <img src="/tarcin-logo.webp" alt="Tarcin Robotics" class="powered-by-logo" />
-      </div>
     </div>
   </header>
 

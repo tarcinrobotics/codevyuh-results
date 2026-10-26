@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Event Insights — Codevyuh Platform</title>
-  <meta name="description" content="Codevyuh Event Insights Dashboard — In-depth participant analysis, grade distribution, registration velocity, and cohort benchmarks for school competitions." />
+  <title>Event Insights — Codevyuh</title>
+  <meta name="description" content="In-depth participant analysis, cohort standings, and score performance analytics." />
   <script>
     (() => {
       const stored = localStorage.getItem('dashboard-theme');
@@ -15,298 +15,516 @@
     })();
   </script>
 
-  <!-- Stylesheets -->
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Core Design Tokens & Styles -->
   <link rel="stylesheet" href="/css/base.css" />
   <link rel="stylesheet" href="/css/topbar.css" />
-  <link rel="stylesheet" href="/css/filters.css" />
   <link rel="stylesheet" href="/css/panels.css" />
 
-  <!-- Chart.js -->
+  <!-- Chart.js & Lucide -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 
   <style>
-    /* ── Event Hero Strip ─────────────────────────────── */
-    .event-hero {
-      margin-bottom: var(--space-md);
-      padding: 20px 24px;
-      border-radius: 18px;
-      border: 1px solid var(--hero-panel-border, rgba(56, 189, 248, 0.2));
-      background: var(--hero-panel-bg, linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.9)));
-      box-shadow: var(--hero-panel-shadow, 0 10px 30px rgba(0, 0, 0, 0.25));
-    }
-    .event-hero-header {
+    /* ═══════════════════════════════════════════════════════════
+       Executive Dashboard Styling (Linear / Stripe / Vercel style)
+    ═══════════════════════════════════════════════════════════ */
+
+    /* ── Page Hero Header ───────────────────────────────────────── */
+    .page-hero {
       display: flex;
       justify-content: space-between;
-      gap: 18px;
       align-items: flex-start;
+      gap: 20px;
+      padding: 24px 0 16px;
+      border-bottom: 1px solid var(--border);
       flex-wrap: wrap;
     }
-    .event-hero-label {
-      font-size: 0.74rem;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--hero-label-color, #38bdf8);
-      font-weight: 700;
-      margin-bottom: 6px;
-      display: flex;
+
+    .page-hero-main {
+      flex: 1;
+      min-width: 300px;
+    }
+
+    .page-kicker {
+      display: inline-flex;
       align-items: center;
       gap: 6px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #38bdf8;
+      margin-bottom: 8px;
     }
-    .event-hero-title {
-      font-size: 1.6rem;
-      line-height: 1.2;
-      letter-spacing: -0.03em;
+
+    .page-title {
+      font-size: 1.85rem;
       font-weight: 800;
-      color: var(--hero-title-color, #f8fafc);
+      letter-spacing: -0.03em;
+      color: var(--text-primary);
+      line-height: 1.15;
+      margin-bottom: 6px;
     }
-    .event-hero-desc {
-      margin-top: 8px;
+
+    .page-desc {
       font-size: 0.88rem;
-      color: var(--hero-note-color, #94a3b8);
+      color: var(--text-secondary);
       line-height: 1.5;
-      max-width: 820px;
+      max-width: 720px;
     }
-    .event-meta-badges {
+
+    .page-hero-actions {
       display: flex;
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
-      margin-top: 8px;
-    }
-    .meta-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 12px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      font-size: 0.76rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-      text-decoration: none;
-      transition: all 0.2s ease;
-    }
-    .meta-badge:hover {
-      background: rgba(56, 189, 248, 0.12);
-      border-color: rgba(56, 189, 248, 0.3);
-      color: #38bdf8;
-    }
-    .meta-badge.active-status {
-      background: rgba(16, 185, 129, 0.12);
-      border-color: rgba(16, 185, 129, 0.3);
-      color: #10b981;
+      padding-top: 4px;
     }
 
-    /* ── Active Event Header Label & Display ─────────── */
-    .event-header-item {
+    .status-live-chip {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-    }
-    .active-event-label {
+      gap: 7px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #10b981;
       font-size: 0.74rem;
       font-weight: 600;
-      color: var(--text-secondary);
-      white-space: nowrap;
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-    }
-    .active-event-display {
-      display: inline-flex;
-      align-items: center;
-      font-size: 0.82rem;
-      font-weight: 600;
-      color: #38bdf8;
-      background: rgba(56, 189, 248, 0.08);
-      border: 1px solid rgba(56, 189, 248, 0.2);
-      padding: 3px 10px;
-      border-radius: 6px;
-      letter-spacing: -0.01em;
-      white-space: nowrap;
-      cursor: default;
-      user-select: text;
-    }
-    [data-theme="light"] .active-event-display {
-      color: #0284c7;
-      background: rgba(2, 132, 199, 0.08);
-      border-color: rgba(2, 132, 199, 0.22);
-    }
-    @media (max-width: 768px) {
-      .active-event-display {
-        white-space: normal;
-        font-size: 0.78rem;
-      }
+      letter-spacing: 0.02em;
     }
 
-    /* ── Database Error Banner ────────────────────────── */
-    .db-error-banner {
-      padding: 16px 20px;
-      border-radius: 12px;
-      border: 1px solid rgba(239, 68, 68, 0.4);
-      background: linear-gradient(135deg, rgba(38, 14, 14, 0.95) 0%, rgba(26, 10, 10, 0.98) 100%);
-      box-shadow: 0 8px 20px rgba(239, 68, 68, 0.15);
-      margin-bottom: var(--space-md);
-      display: flex;
-      gap: 16px;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-    }
-    [data-theme="light"] .db-error-banner {
-      background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-      border-color: rgba(239, 68, 68, 0.4);
-      box-shadow: 0 6px 16px rgba(239, 68, 68, 0.1);
-    }
-    .db-error-content {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      color: #f87171;
-    }
-    .db-error-icon {
-      flex-shrink: 0;
-      color: #ef4444;
-    }
-    .db-error-text {
-      font-size: 0.86rem;
-      color: var(--text-primary);
-    }
-    .db-error-text strong {
-      color: #ef4444;
-      display: block;
-      margin-bottom: 2px;
-    }
-    .btn-db-retry {
+    .btn-action {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 8px 16px;
+      padding: 7px 14px;
       border-radius: 8px;
-      border: 1px solid rgba(239, 68, 68, 0.5);
-      background: rgba(239, 68, 68, 0.15);
-      color: #fca5a5;
-      font-size: 0.82rem;
-      font-weight: 700;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .btn-db-retry:hover {
-      background: #ef4444;
-      color: #ffffff;
-      border-color: #ef4444;
-      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+      transition: all 0.15s ease;
+      white-space: nowrap;
     }
 
-    /* ── Performance Informational Card ───────────────── */
-    .performance-notice-card {
-      padding: 22px 24px;
-      border-radius: 16px;
-      border: 1px solid rgba(56, 189, 248, 0.25);
-      background: linear-gradient(135deg, rgba(14, 27, 49, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.15);
-      margin-bottom: var(--space-md);
+    .btn-action.primary {
+      background: #2563eb;
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-action.primary:hover {
+      background: #1d4ed8;
+    }
+
+    .btn-action.secondary {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+
+    .btn-action.secondary:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: var(--border-hover);
+      color: var(--text-primary);
+    }
+
+    /* ── High-Density Executive Metrics Strip (5 Cards) ────────── */
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      margin-top: 10px;
+    }
+
+    .metric-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 18px;
       display: flex;
-      gap: 20px;
+      flex-direction: column;
+      gap: 6px;
+      transition: border-color 0.15s ease;
+    }
+
+    .metric-card:hover {
+      border-color: var(--border-hover);
+    }
+
+    .metric-header {
+      display: flex;
       align-items: center;
-      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 8px;
     }
-    [data-theme="light"] .performance-notice-card {
-      background: linear-gradient(135deg, #f0fdf4 0%, #e0f2fe 100%);
-      border-color: rgba(56, 189, 248, 0.35);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
+
+    .metric-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
     }
-    .notice-icon-box {
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
-      background: rgba(56, 189, 248, 0.15);
-      border: 1px solid rgba(56, 189, 248, 0.3);
+
+    .metric-icon-wrap {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.04);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #38bdf8;
-      flex-shrink: 0;
-    }
-    .notice-content {
-      flex: 1;
-      min-width: 280px;
-    }
-    .notice-heading {
-      font-size: 1.15rem;
-      font-weight: 800;
-      color: var(--text-primary);
-      margin-bottom: 4px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .notice-subtext {
-      font-size: 0.85rem;
-      line-height: 1.5;
       color: var(--text-secondary);
-    }
-    .notice-metrics-strip {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-    .notice-pill {
-      padding: 6px 14px;
-      border-radius: 8px;
-      font-size: 0.76rem;
-      font-weight: 600;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      color: var(--text-secondary);
-      display: flex;
-      align-items: center;
-      gap: 6px;
     }
 
-    /* ── Participant Search & Table Toolbar ───────────── */
+    .metric-icon-wrap svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .metric-icon-wrap.gold {
+      background: rgba(234, 179, 8, 0.12);
+      color: #facc15;
+    }
+
+    .metric-icon-wrap.emerald {
+      background: rgba(16, 185, 129, 0.12);
+      color: #10b981;
+    }
+
+    .metric-value {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -0.025em;
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-value.gold { color: #facc15; }
+    .metric-value.emerald { color: #10b981; }
+
+    .metric-sub {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Section Block ─────────────────────────────────────────── */
+    .section-block {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+    }
+
+    .section-headline {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .section-title-text {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.015em;
+      margin-bottom: 2px;
+    }
+
+    .section-subtitle-text {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .section-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #10b981;
+    }
+
+    /* ── Prestige Tournament Podium ─────────────────────────────── */
+    .podium-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr 1fr;
+      gap: 16px;
+      align-items: end;
+      margin-bottom: 24px;
+    }
+
+    .podium-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .podium-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .podium-card.podium-gold {
+      background: linear-gradient(180deg, rgba(234, 179, 8, 0.08) 0%, rgba(15, 20, 34, 0.95) 100%);
+      border-color: rgba(234, 179, 8, 0.4);
+      padding: 32px 22px 24px;
+      box-shadow: 0 12px 32px -8px rgba(234, 179, 8, 0.12);
+      z-index: 2;
+    }
+
+    .podium-card.podium-gold:hover {
+      border-color: rgba(234, 179, 8, 0.6);
+    }
+
+    .podium-card.podium-silver {
+      background: linear-gradient(180deg, rgba(148, 163, 184, 0.06) 0%, rgba(15, 20, 34, 0.95) 100%);
+      border-color: rgba(148, 163, 184, 0.28);
+    }
+
+    .podium-card.podium-bronze {
+      background: linear-gradient(180deg, rgba(249, 115, 22, 0.06) 0%, rgba(15, 20, 34, 0.95) 100%);
+      border-color: rgba(249, 115, 22, 0.28);
+    }
+
+    .podium-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 3px 10px;
+      border-radius: 999px;
+      margin-bottom: 12px;
+    }
+
+    .podium-badge.gold {
+      background: rgba(234, 179, 8, 0.15);
+      border: 1px solid rgba(234, 179, 8, 0.4);
+      color: #facc15;
+    }
+
+    .podium-badge.silver {
+      background: rgba(148, 163, 184, 0.15);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      color: #e2e8f0;
+    }
+
+    .podium-badge.bronze {
+      background: rgba(249, 115, 22, 0.15);
+      border: 1px solid rgba(249, 115, 22, 0.35);
+      color: #fb923c;
+    }
+
+    .podium-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .podium-avatar.gold {
+      width: 54px;
+      height: 54px;
+      font-size: 1.35rem;
+      background: rgba(234, 179, 8, 0.18);
+      border: 2px solid #eab308;
+      color: #facc15;
+    }
+
+    .podium-avatar.silver {
+      background: rgba(148, 163, 184, 0.15);
+      border: 2px solid #94a3b8;
+      color: #e2e8f0;
+    }
+
+    .podium-avatar.bronze {
+      background: rgba(249, 115, 22, 0.15);
+      border: 2px solid #f97316;
+      color: #fb923c;
+    }
+
+    .podium-name {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+      max-width: 90%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .podium-name.gold {
+      font-size: 1.2rem;
+      font-weight: 800;
+    }
+
+    .podium-user {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 1px 6px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+    }
+
+    .podium-grade {
+      font-size: 0.74rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .podium-score {
+      font-size: 1.6rem;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .podium-score.gold {
+      font-size: 2rem;
+      color: #facc15;
+    }
+
+    .podium-score.silver { color: #e2e8f0; }
+    .podium-score.bronze { color: #fb923c; }
+
+    .podium-chip {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      padding: 3px 10px;
+      border-radius: 999px;
+    }
+
+    .podium-chip.gold {
+      background: rgba(234, 179, 8, 0.1);
+      border-color: rgba(234, 179, 8, 0.3);
+      color: #facc15;
+    }
+
+    /* ── Standby Notice ─────────────────────────────────────────── */
+    .standby-notice {
+      padding: 14px 18px;
+      border-radius: 10px;
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.25);
+      color: var(--text-secondary);
+      font-size: 0.84rem;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .standby-notice strong {
+      color: #f59e0b;
+    }
+
+    /* ── Table Toolbar ─────────────────────────────────────────── */
     .table-toolbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 16px;
-      margin-bottom: 12px;
+      gap: 12px;
+      margin-bottom: 14px;
       flex-wrap: wrap;
     }
-    .search-input-wrap {
-      position: relative;
-      min-width: 260px;
-      max-width: 380px;
+
+    .toolbar-filters {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
       flex: 1;
     }
-    .search-input-wrap input {
-      width: 100%;
-      padding: 8px 12px 8px 34px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: var(--bg-surface);
-      color: var(--text-primary);
-      font-size: 0.82rem;
-      outline: none;
-      transition: border-color 0.18s;
+
+    .search-wrap {
+      position: relative;
+      min-width: 240px;
+      max-width: 340px;
+      flex: 1;
     }
-    .search-input-wrap input:focus {
-      border-color: #38bdf8;
-    }
-    .search-icon-inside {
+
+    .search-icon {
       position: absolute;
       left: 10px;
       top: 50%;
       transform: translateY(-50%);
-      color: var(--text-muted);
-      pointer-events: none;
       width: 14px;
       height: 14px;
+      color: var(--text-muted);
+      pointer-events: none;
     }
+
+    .search-input {
+      width: 100%;
+      padding: 7px 12px 7px 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-input);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.8rem;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .search-input:focus {
+      border-color: var(--brand-accent);
+    }
+
+    .select-sm {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-input);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.78rem;
+      outline: none;
+      cursor: pointer;
+    }
+
     .table-pagination {
       display: flex;
       align-items: center;
@@ -314,279 +532,47 @@
       font-size: 0.78rem;
       color: var(--text-muted);
     }
-    .btn-pagination {
+
+    .btn-page {
       padding: 5px 12px;
       border-radius: 6px;
       border: 1px solid var(--border);
-      background: var(--bg-surface);
-      color: var(--text-primary);
+      background: transparent;
+      color: var(--text-secondary);
       font-size: 0.76rem;
-      font-weight: 600;
+      font-weight: 500;
       cursor: pointer;
-      transition: all 0.15s;
+      transition: all 0.15s ease;
     }
-    .btn-pagination:disabled {
+
+    .btn-page:not(:disabled):hover {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-primary);
+    }
+
+    .btn-page:disabled {
       opacity: 0.4;
       cursor: not-allowed;
     }
-    .btn-pagination:not(:disabled):hover {
-      background: rgba(56, 189, 248, 0.1);
-      border-color: #38bdf8;
-      color: #38bdf8;
-    }
 
-    /* ── Metric Help Tooltips ─────────────────────────── */
-    .metric-help {
-      position: relative;
-      margin-left: auto;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.04);
-      color: var(--text-muted);
-      cursor: help;
-      flex-shrink: 0;
-    }
-    .metric-help::after {
-      content: attr(data-help);
-      position: absolute;
-      top: calc(100% + 10px);
-      right: 0;
-      width: 220px;
-      padding: 10px 12px;
-      border-radius: 10px;
-      background: #0f1e38;
-      border: 1px solid rgba(56,189,248,0.25);
-      color: #dbe7f5;
-      font-size: 0.72rem;
-      line-height: 1.45;
-      box-shadow: 0 12px 28px rgba(0,0,0,0.25);
-      opacity: 0;
-      transform: translateY(-4px);
-      pointer-events: none;
-      transition: opacity 0.18s ease, transform 0.18s ease;
-      z-index: 20;
-      white-space: normal;
-    }
-    .metric-help:hover::after,
-    .metric-help:focus-visible::after {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    .pulse-dot {
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #10b981;
-      margin-right: 6px;
-      box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
-      70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
-      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-    }
-
-    /* ── Dolphin PRELIMS Podium & Analytics Styles ────── */
-    .podium-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: var(--space-md);
-      margin-bottom: var(--space-md);
-    }
-    .podium-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 22px 20px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      position: relative;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .podium-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
-    }
-    .podium-card.podium-gold {
-      border-color: rgba(234, 179, 8, 0.45);
-      background: linear-gradient(135deg, rgba(234, 179, 8, 0.08) 0%, var(--bg-surface) 100%);
-    }
-    .podium-card.podium-silver {
-      border-color: rgba(148, 163, 184, 0.35);
-      background: linear-gradient(135deg, rgba(148, 163, 184, 0.08) 0%, var(--bg-surface) 100%);
-    }
-    .podium-card.podium-bronze {
-      border-color: rgba(249, 115, 22, 0.35);
-      background: linear-gradient(135deg, rgba(249, 115, 22, 0.08) 0%, var(--bg-surface) 100%);
-    }
-    .podium-rank-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.78rem;
-      font-weight: 700;
-      padding: 4px 12px;
-      border-radius: 999px;
-      margin-bottom: 12px;
-    }
-    .podium-gold .podium-rank-badge {
-      background: rgba(234, 179, 8, 0.2);
-      color: #eab308;
-      border: 1px solid rgba(234, 179, 8, 0.4);
-    }
-    .podium-silver .podium-rank-badge {
-      background: rgba(148, 163, 184, 0.2);
-      color: #cbd5e1;
-      border: 1px solid rgba(148, 163, 184, 0.4);
-    }
-    .podium-bronze .podium-rank-badge {
-      background: rgba(249, 115, 22, 0.2);
-      color: #fb923c;
-      border: 1px solid rgba(249, 115, 22, 0.4);
-    }
-    .podium-avatar {
-      width: 54px;
-      height: 54px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.25rem;
-      font-weight: 800;
-      margin-bottom: 10px;
-      border: 2px solid currentColor;
-    }
-    .podium-gold .podium-avatar {
-      background: rgba(234, 179, 8, 0.15);
-      color: #eab308;
-    }
-    .podium-silver .podium-avatar {
-      background: rgba(148, 163, 184, 0.15);
-      color: #cbd5e1;
-    }
-    .podium-bronze .podium-avatar {
-      background: rgba(249, 115, 22, 0.15);
-      color: #fb923c;
-    }
-    .podium-name {
-      font-size: 1.02rem;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin-bottom: 4px;
-    }
-    .podium-grade {
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      margin-bottom: 8px;
-    }
-    .podium-score {
-      font-size: 1.4rem;
-      font-weight: 800;
-      color: #38bdf8;
-    }
-    .podium-pending-notice {
-      padding: 16px 20px;
-      border-radius: 12px;
-      border: 1px solid rgba(234, 179, 8, 0.35);
-      background: linear-gradient(135deg, rgba(32, 26, 12, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: var(--space-md);
-      box-shadow: 0 8px 24px rgba(234, 179, 8, 0.08);
-    }
-    [data-theme="light"] .podium-pending-notice {
-      background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
-      border-color: rgba(234, 179, 8, 0.4);
-    }
-    .podium-pending-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      background: rgba(234, 179, 8, 0.18);
-      border: 1px solid rgba(234, 179, 8, 0.35);
-      color: #eab308;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-    .podium-pending-text h3 {
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: #eab308;
-      margin: 0 0 4px 0;
-    }
-    .podium-pending-text p {
-      font-size: 0.82rem;
-      line-height: 1.45;
-      color: var(--text-secondary);
-      margin: 0;
-    }
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 3px 9px;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      font-weight: 600;
-      white-space: nowrap;
-    }
-    .status-pill.status-locked {
-      background: rgba(239, 68, 68, 0.15);
-      color: #f87171;
-      border: 1px solid rgba(239, 68, 68, 0.35);
-    }
-    .status-pill.status-attempted {
-      background: rgba(59, 130, 246, 0.15);
-      color: #60a5fa;
-      border: 1px solid rgba(59, 130, 246, 0.35);
-    }
-    .status-pill.status-opened {
-      background: rgba(245, 158, 11, 0.15);
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.35);
-    }
-    .status-pill.status-inactive {
-      background: rgba(148, 163, 184, 0.1);
-      color: #94a3b8;
-      border: 1px solid rgba(148, 163, 184, 0.2);
-    }
-    .filter-select-sm {
-      padding: 6px 10px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: var(--bg-surface);
-      color: var(--text-primary);
-      font-size: 0.78rem;
-      outline: none;
-      cursor: pointer;
-      transition: border-color 0.18s;
-    }
-    .filter-select-sm:focus {
-      border-color: #38bdf8;
-    }
+    /* ── Responsive ─────────────────────────────────────────────── */
     @media (max-width: 1200px) {
-      .kpi-grid-6 {
-        grid-template-columns: repeat(3, 1fr) !important;
+      .kpi-strip {
+        grid-template-columns: repeat(3, 1fr);
       }
     }
-    @media (max-width: 768px) {
-      .kpi-grid-6 {
-        grid-template-columns: repeat(2, 1fr) !important;
-      }
+
+    @media (max-width: 820px) {
       .podium-grid {
+        grid-template-columns: 1fr;
+      }
+      .kpi-strip {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 520px) {
+      .kpi-strip {
         grid-template-columns: 1fr;
       }
     }
@@ -595,97 +581,61 @@
 
 <body>
   <!-- ═══════════════════════════════════════════════════════
-       TOP BAR
+       TOP BAR (UNIFIED ENTERPRISE NAVIGATION)
   ═══════════════════════════════════════════════════════ -->
   <header class="topbar" role="banner">
-    <!-- Left: Logo + Title -->
     <div class="topbar-left">
-      <div class="topbar-logo-wrap" aria-hidden="true">
-        <!-- Trophy / Contest Icon SVG -->
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
-          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
-          <path d="M4 22h16"/>
-          <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
-          <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
-          <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
-        </svg>
+      <a href="/admin-overview" class="brand-wrap">
+        <div class="brand-icon" aria-hidden="true">
+          <i data-lucide="award"></i>
+        </div>
+        <span class="brand-text">Codevyuh</span>
+      </a>
+
+      <div class="topbar-sep" aria-hidden="true"></div>
+
+      <!-- Active Event Context -->
+      <div class="event-context-chip" id="event-context-chip">
+        <span class="pulse-dot"></span>
+        <span id="active-event-display">Loading Event…</span>
+        <select id="filter-event" class="event-select-dropdown" style="display:none"></select>
       </div>
 
-      <div class="topbar-title-group">
-        <h1 class="topbar-title">Event Insights Dashboard</h1>
-        <span class="topbar-subtitle">Codevyuh Competition &amp; Assessment Platform</span>
-      </div>
-
-      <div class="topbar-divider" aria-hidden="true"></div>
-
-      <!-- Navigation Links -->
-      <nav class="topbar-nav" aria-label="Dashboard navigation">
+      <!-- Primary Nav -->
+      <nav class="topbar-nav" aria-label="Primary navigation">
         <a href="/admin-overview" class="nav-link active" id="nav-admin">
-          <i data-lucide="trophy" class="icon-sm"></i>
-          Event Insights
-        </a>
-        <a href="/zone-dashboard" class="nav-link" id="nav-zone">
-          <i data-lucide="map-pin" class="icon-sm"></i>
-          School Dashboard
-        </a>
-        <a href="/parent-view" class="nav-link" id="nav-parent">
-          <i data-lucide="users" class="icon-sm"></i>
-          Parent View
+          <i data-lucide="trophy"></i>
+          <span>Event Insights</span>
         </a>
       </nav>
     </div>
 
-    <!-- Right: Theme Switcher & Tarcin Logo -->
     <div class="topbar-right">
-      <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch theme">
+      <!-- Injected by auth-client.js: user chip + logout -->
+      <button class="theme-toggle-btn" type="button" data-theme-toggle aria-label="Toggle theme">
         <svg data-theme-icon viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
-        <span data-theme-label>Dark Mode</span>
       </button>
-      <div class="powered-by" aria-label="Powered by Tarcin Robotics">
-        <span class="powered-by-text">Powered by</span>
-        <img src="/tarcin-logo.webp" alt="Tarcin Robotics" class="powered-by-logo" />
-      </div>
     </div>
   </header>
 
-  <!-- ═══════════════════════════════════════════════════════
-       FILTER BAR: EVENT SELECTOR
-  ═══════════════════════════════════════════════════════ -->
-  <div class="filterbar" role="search" aria-label="Event selector">
-    <span class="filterbar-label"><i data-lucide="filter" class="icon-sm"></i> Event</span>
-    <div class="filterbar-sep" aria-hidden="true"></div>
-
-    <div class="filters-group" style="display:flex;align-items:center;gap:var(--space-md);flex-wrap:wrap">
-      <!-- Event Header Display -->
-      <div class="filter-item event-header-item">
-        <span class="filter-item-label active-event-label" id="label-active-event">
-          <i data-lucide="calendar" class="icon-sm"></i> Active Event
-        </span>
-        <span id="active-event-display" class="active-event-display" aria-label="Authenticated Active Event">Loading target event…</span>
-        <select id="filter-event" class="filter-select" aria-label="Filter by Event" style="display:none">
-          <option value="">Loading target events…</option>
-        </select>
-      </div>
-
-      <!-- Quick Badges -->
-      <div style="display:flex;align-items:center;gap:8px">
-        <span class="meta-badge" id="event-quick-type"><i data-lucide="tag" class="icon-sm"></i> GENERAL</span>
-        <span class="meta-badge active-status" id="event-quick-status">
-          <span class="pulse-dot"></span> OPEN
-        </span>
-      </div>
-
-      <!-- Refresh Button -->
-      <button id="btn-refresh-event" class="btn-clear-filters" type="button" aria-label="Refresh event data" style="margin-left:auto">
-        <i data-lucide="refresh-cw" class="icon-sm"></i>
-        Refresh
-      </button>
-    </div>
-
-    <div class="filterbar-right">
-      <span id="filter-status-text" class="filter-status-text" aria-live="polite">Live database metrics</span>
-    </div>
+  <!-- Hidden hooks for legacy script binding -->
+  <div style="display:none" aria-hidden="true">
+    <span id="event-quick-type"></span>
+    <span id="event-quick-status"></span>
+    <span id="filter-status-text"></span>
+    <span id="event-hero-title"></span>
+    <span id="event-id-text"></span>
+    <span id="event-link-text"></span>
+    <a id="btn-event-link" href="#"></a>
+    <span id="kpi-locks-count"></span>
+    <span id="kpi-locks-sub"></span>
+    <span id="kpi-duration-val"></span>
+    <span id="kpi-duration-sub"></span>
+    <span id="kpi-score-deductions"></span>
+    <span id="kpi-score-deductions-sub"></span>
+    <span id="kpi-enrolled-sub"></span>
+    <span id="score-pipeline-pill"></span>
+    <span id="kpi-active-count"></span>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════
@@ -694,585 +644,317 @@
   <div class="page-wrapper">
     <main class="main-content" id="main-content" role="main">
 
-      <!-- ── EVENT HERO BANNER ─────────────────────────────── -->
-      <section class="event-hero" aria-labelledby="event-hero-title">
-        <div class="event-hero-header">
-          <div>
-            <div class="event-hero-label" id="event-hero-label">
-              <i data-lucide="building-2" style="width:14px;height:14px"></i>
-              <span id="event-institution-name">Loading Institution…</span>
-            </div>
-            <h2 class="event-hero-title" id="event-hero-title">Select an Event</h2>
-            <div class="event-hero-desc" id="event-hero-desc">Connecting to event analytics engine…</div>
+      <!-- ── EXECUTIVE PAGE HERO ─────────────────────────────── -->
+      <section class="page-hero">
+        <div class="page-hero-main">
+          <div class="page-kicker">
+            <i data-lucide="shield-check" style="width:13px;height:13px;color:#38bdf8"></i>
+            <span>Madurai Tech Cup 2026 · Official Prelims Cohort</span>
           </div>
-          <div class="event-meta-badges">
-            <span class="meta-badge" id="badge-event-id" title="Event UUID">
-              <i data-lucide="fingerprint" class="icon-sm"></i> ID: <span id="event-id-text">—</span>
-            </span>
-            <a id="btn-event-link" href="#" target="_blank" rel="noopener noreferrer" class="meta-badge" title="Public registration link">
-              <i data-lucide="external-link" class="icon-sm"></i> <span id="event-link-text">codevyuh.com/event/…</span>
-            </a>
+          <h1 class="page-title" id="event-institution-name">Loading Institution…</h1>
+          <p class="page-desc" id="event-hero-desc">Verified competition cohort scoring, cumulative multi-challenge evaluation, and live performance standings.</p>
+        </div>
+
+        <div class="page-hero-actions">
+          <div class="status-live-chip">
+            <span class="pulse-dot"></span>
+            <span>Evaluation Completed</span>
+          </div>
+          <button type="button" class="btn-action primary" id="btn-export-roster-hero" title="Export verified cohort roster to CSV">
+            <i data-lucide="download" style="width:14px;height:14px"></i>
+            <span>Export Roster CSV</span>
+          </button>
+          <button type="button" class="btn-action secondary" id="btn-refresh-event" title="Refresh metrics">
+            <i data-lucide="refresh-cw" style="width:14px;height:14px"></i>
+            <span>Refresh</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ── HIGH-DENSITY KPI STRIP (5 METRICS) ──────────────── -->
+      <section class="kpi-strip">
+        <!-- 1: Enrolled Cohort -->
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-label">Enrolled Students</span>
+            <div class="metric-icon-wrap"><i data-lucide="users"></i></div>
+          </div>
+          <div class="metric-value skeleton value-loading" id="kpi-enrolled-count">&nbsp;</div>
+          <div class="metric-sub" id="kpi-active-sub">100% active participants</div>
+        </div>
+
+        <!-- 2: Top Score -->
+        <div class="metric-card gold-accent">
+          <div class="metric-header">
+            <span class="metric-label">Tournament Top Score</span>
+            <div class="metric-icon-wrap gold"><i data-lucide="trophy"></i></div>
+          </div>
+          <div class="metric-value gold skeleton value-loading" id="kpi-score-max">&nbsp;</div>
+          <div class="metric-sub" id="kpi-score-max-sub">Rank 1 Champion</div>
+        </div>
+
+        <!-- 3: Average Score -->
+        <div class="metric-card emerald-accent">
+          <div class="metric-header">
+            <span class="metric-label">Cohort Average Score</span>
+            <div class="metric-icon-wrap emerald"><i data-lucide="trending-up"></i></div>
+          </div>
+          <div class="metric-value emerald skeleton value-loading" id="kpi-score-avg">&nbsp;</div>
+          <div class="metric-sub" id="kpi-score-avg-sub">Evaluated cumulative score</div>
+        </div>
+
+        <!-- 4: Submissions Processed -->
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-label">Submissions Evaluated</span>
+            <div class="metric-icon-wrap"><i data-lucide="zap"></i></div>
+          </div>
+          <div class="metric-value skeleton value-loading" id="kpi-attempts-count">&nbsp;</div>
+          <div class="metric-sub" id="kpi-attempts-sub">Across 306 challenges</div>
+        </div>
+
+        <!-- 5: Pipeline Coverage -->
+        <div class="metric-card">
+          <div class="metric-header">
+            <span class="metric-label">Evaluation Pipeline</span>
+            <div class="metric-icon-wrap"><i data-lucide="check-circle-2"></i></div>
+          </div>
+          <div class="metric-value skeleton value-loading" id="kpi-score-pipeline">&nbsp;</div>
+          <div class="metric-sub" id="kpi-score-pipeline-sub">Official scores verified</div>
+        </div>
+      </section>
+
+      <!-- ── TOURNAMENT PODIUM & STANDINGS ────────────────────── -->
+      <section class="section-block">
+        <div class="section-headline">
+          <div>
+            <h2 class="section-title-text">Tournament Podium &amp; Top Standings</h2>
+            <p class="section-subtitle-text">Official multi-challenge cumulative exam score rankings.</p>
+          </div>
+          <span class="section-pill" id="leaderboard-mode-badge">Official Score Rankings</span>
+        </div>
+
+        <!-- Standby Banner (Shown only when pending) -->
+        <div id="leaderboard-standby-banner" class="standby-notice" style="display:none">
+          <i data-lucide="clock" style="width:20px;height:20px;color:#f59e0b;flex-shrink:0"></i>
+          <div>
+            <strong>Evaluation Standby:</strong> Official submissions are currently awaiting platform ingestion sync.
+          </div>
+        </div>
+
+        <!-- Podium Grid: Rank 2 (Silver), Rank 1 (Gold Elevated Center), Rank 3 (Bronze) -->
+        <div class="podium-grid" id="contest-podium-grid">
+          <!-- Rank 2: Silver (Left) -->
+          <div class="podium-card podium-silver">
+            <div class="podium-badge silver">🥈 Rank 2 · Silver</div>
+            <div class="podium-avatar silver">2</div>
+            <div class="podium-name" id="podium-silver-name">—</div>
+            <code class="podium-user" id="podium-silver-username">—</code>
+            <div class="podium-grade" id="podium-silver-grade">—</div>
+            <div class="podium-score silver" id="podium-silver-score">—</div>
+            <div class="podium-chip" id="podium-silver-solved">— Challenges Solved</div>
+          </div>
+
+          <!-- Rank 1: Gold Champion (Center Elevated) -->
+          <div class="podium-card podium-gold">
+            <div class="podium-badge gold">
+              <i data-lucide="crown" style="width:13px;height:13px"></i>
+              <span>Rank 1 · Champion</span>
+            </div>
+            <div class="podium-avatar gold">1</div>
+            <div class="podium-name gold" id="podium-gold-name">—</div>
+            <code class="podium-user" id="podium-gold-username">—</code>
+            <div class="podium-grade" id="podium-gold-grade">—</div>
+            <div class="podium-score gold" id="podium-gold-score">—</div>
+            <div class="podium-chip gold" id="podium-gold-solved">— Challenges Solved</div>
+          </div>
+
+          <!-- Rank 3: Bronze (Right) -->
+          <div class="podium-card podium-bronze">
+            <div class="podium-badge bronze">🥉 Rank 3 · Bronze</div>
+            <div class="podium-avatar bronze">3</div>
+            <div class="podium-name" id="podium-bronze-name">—</div>
+            <code class="podium-user" id="podium-bronze-username">—</code>
+            <div class="podium-grade" id="podium-bronze-grade">—</div>
+            <div class="podium-score bronze" id="podium-bronze-score">—</div>
+            <div class="podium-chip" id="podium-bronze-solved">— Challenges Solved</div>
+          </div>
+        </div>
+
+        <!-- Top 10 Table -->
+        <div class="table-container" id="leaderboard-table-wrap">
+          <table aria-label="Contest Leaderboard">
+            <thead>
+              <tr>
+                <th style="width:60px">Rank</th>
+                <th>Student Name</th>
+                <th>Username</th>
+                <th>Grade</th>
+                <th>Challenges Solved</th>
+                <th id="th-leaderboard-metric">Official Exam Score</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-tbody">
+              <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">Loading standings…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Diagnostic Standings (if pending) -->
+        <div id="diagnostic-standings-wrap" style="display:none;margin-top:var(--space-md)">
+          <div class="table-container">
+            <table aria-label="Diagnostic Practice Standings">
+              <thead>
+                <tr>
+                  <th style="width:50px">#</th>
+                  <th>Student Name</th>
+                  <th>Username</th>
+                  <th>Grade</th>
+                  <th>Practice Attempts</th>
+                </tr>
+              </thead>
+              <tbody id="diagnostic-tbody"></tbody>
+            </table>
           </div>
         </div>
       </section>
 
-      <!-- ═══════════════════════════════════════════════════════
-           KLN PRELIMS DASHBOARD VIEW (Preserved for KLN Event)
-      ═══════════════════════════════════════════════════════ -->
-      <div id="kln-dashboard-view">
-        <!-- ── SET 1 — Event-Specific KPI Cards ──────────────── -->
-        <section class="panel-row" aria-labelledby="kpi-section-title">
-          <div class="section-header">
-            <div class="section-title">
-              <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-              </svg>
-              <span id="kpi-section-title">Event Key Performance Indicators</span>
-            </div>
-          </div>
-
-          <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr)">
-            <!-- 1: Registered Participants -->
-            <div class="stat-card" style="--card-accent:#10b981;--card-icon-bg:rgba(16,185,129,0.12)" role="article" aria-label="Registered Participants">
-              <div class="stat-card-header">
-                <span class="stat-label">Registered Participants</span>
-                <button class="metric-help" type="button" data-help="Total distinct student accounts linked to this event in UserEvent and verified in PostgreSQL." aria-label="Help">
-                  <i data-lucide="info" style="width:12px;height:12px"></i>
-                </button>
-                <div class="stat-icon-wrap" aria-hidden="true"><i data-lucide="users"></i></div>
-              </div>
-              <div class="stat-value skeleton value-loading" id="kpi-total-participants" aria-live="polite">&nbsp;</div>
-              <div class="stat-sub">Enrolled students</div>
-            </div>
-
-            <!-- 2: Grade / Section Coverage -->
-            <div class="stat-card" style="--card-accent:#3b82f6;--card-icon-bg:rgba(59,130,246,0.12)" role="article" aria-label="Grade / Section Coverage">
-              <div class="stat-card-header">
-                <span class="stat-label">Grade / Section Coverage</span>
-                <button class="metric-help" type="button" data-help="Academic cohorts, grades, and classroom sections participating in this event." aria-label="Help">
-                  <i data-lucide="info" style="width:12px;height:12px"></i>
-                </button>
-                <div class="stat-icon-wrap" aria-hidden="true"><i data-lucide="graduation-cap"></i></div>
-              </div>
-              <div class="stat-value skeleton value-loading" id="kpi-grade-coverage" style="font-size:1.35rem" aria-live="polite">&nbsp;</div>
-              <div class="stat-sub" id="kpi-grade-sub">Academic cohorts</div>
-            </div>
-
-            <!-- 3: Event Status -->
-            <div class="stat-card" style="--card-accent:#8b5cf6;--card-icon-bg:rgba(139,92,246,0.12)" role="article" aria-label="Event Status">
-              <div class="stat-card-header">
-                <span class="stat-label">Event Status</span>
-                <button class="metric-help" type="button" data-help="Active lifecycle status recorded in the PostgreSQL Event table." aria-label="Help">
-                  <i data-lucide="info" style="width:12px;height:12px"></i>
-                </button>
-                <div class="stat-icon-wrap" aria-hidden="true"><i data-lucide="activity"></i></div>
-              </div>
-              <div class="stat-value skeleton value-loading" id="kpi-event-status" aria-live="polite">&nbsp;</div>
-              <div class="stat-sub">Contest lifecycle</div>
-            </div>
-
-            <!-- 4: Allocated Duration -->
-            <div class="stat-card" style="--card-accent:#f59e0b;--card-icon-bg:rgba(245,158,11,0.12)" role="article" aria-label="Allocated Duration">
-              <div class="stat-card-header">
-                <span class="stat-label">Allocated Duration</span>
-                <button class="metric-help" type="button" data-help="Default access duration in minutes (defaultAccessMins) allocated per student attempt." aria-label="Help">
-                  <i data-lucide="info" style="width:12px;height:12px"></i>
-                </button>
-                <div class="stat-icon-wrap" aria-hidden="true"><i data-lucide="clock"></i></div>
-              </div>
-              <div class="stat-value skeleton value-loading" id="kpi-allocated-duration" aria-live="polite">&nbsp;</div>
-              <div class="stat-sub">Session window</div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ── SET 2 — Academic Composition & Cohorts ────────── -->
-        <section class="panel-row" aria-labelledby="academic-charts-title">
-          <div class="two-col-grid" style="grid-template-columns: 1.25fr 1fr">
-            <!-- Chart A: Participants by Grade / Section — Bar -->
-            <div class="panel">
-              <div class="panel-title">
-                <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-                  <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
-                </svg>
-                <span id="chart-a-title">Participants by Grade / Section</span>
-                <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Cohort breakdown</span>
-              </div>
-              <div class="chart-container" id="chart-grade-bar-wrap" style="min-height:330px" aria-label="Participants by Grade Bar Chart">
-                <canvas id="chart-grade-bar-canvas"></canvas>
-              </div>
-            </div>
-
-            <!-- Chart B: Cohort Distribution — Doughnut -->
-            <div class="panel">
-              <div class="panel-title">
-                <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/>
-                </svg>
-                <span id="chart-b-title">Cohort Distribution</span>
-                <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Percentage share</span>
-              </div>
-              <div class="chart-container" id="chart-cohort-doughnut-wrap" style="min-height:330px" aria-label="Cohort Distribution Doughnut Chart">
-                <canvas id="chart-cohort-doughnut-canvas"></canvas>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ── SET 3 — Registration Timeline & Benchmark Comparison ─ -->
-        <section class="panel-row" aria-labelledby="trend-charts-title">
-          <div class="two-col-grid" style="grid-template-columns: 1fr 1fr">
-            <!-- Chart C: Registration Timeline — Line -->
-            <div class="panel">
-              <div class="panel-title">
-                <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                </svg>
-                <span id="chart-c-title">Registration Timeline</span>
-                <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Enrollment velocity over time</span>
-              </div>
-              <div class="chart-container" id="chart-registration-timeline-wrap" style="min-height:330px" aria-label="Registration Timeline Line Chart">
-                <canvas id="chart-registration-timeline-canvas"></canvas>
-              </div>
-            </div>
-
-            <!-- Chart D: KLN vs Mock Exam comparison — Grouped Bar -->
-            <div class="panel">
-              <div class="panel-title">
-                <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                </svg>
-                <span id="chart-d-title">KLN vs Mock Exam Benchmark</span>
-                <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Multi-event comparison</span>
-              </div>
-              <div class="chart-container" id="chart-event-comparison-wrap" style="min-height:330px" aria-label="Event Comparison Grouped Bar Chart">
-                <canvas id="chart-event-comparison-canvas"></canvas>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ── SET 4 — Contest Performance & Scoring Notice ───── -->
-        <section class="performance-notice-card" aria-label="Contest Performance Status">
-          <div class="notice-icon-box">
-            <i data-lucide="shield-alert" style="width:28px;height:28px"></i>
-          </div>
-          <div class="notice-content">
-            <div class="notice-heading">Performance data awaiting contest submissions</div>
-            <div class="notice-subtext">
-              All 662 participants across both events are registered with verified student profiles in PostgreSQL. Challenge submissions, code accuracy, and scoring leaderboards will automatically unlock once contestants submit solutions.
-            </div>
-          </div>
-          <div class="notice-metrics-strip">
-            <div class="notice-pill"><i data-lucide="file-code-2" class="icon-sm"></i> Submissions in DB: <strong>0</strong></div>
-            <div class="notice-pill"><i data-lucide="award" class="icon-sm"></i> Challenge Scores: <strong>0 pts</strong></div>
-            <div class="notice-pill" style="color:#10b981;border-color:rgba(16,185,129,0.3)"><i data-lucide="check-circle" class="icon-sm"></i> Mode: <strong>Exploration &amp; Practice</strong></div>
-          </div>
-        </section>
-
-        <!-- ── SET 5 — Participant Roster (Interactive Table) ─── -->
-        <section class="panel-row" aria-labelledby="participants-roster-title">
+      <!-- ── SCORE ANALYTICS CHARTS ──────────────────────────── -->
+      <section class="panel-row">
+        <div class="two-col-grid" style="grid-template-columns: 1.25fr 1fr">
+          <!-- Chart 1: Score Performance Tiers -->
           <div class="panel">
             <div class="panel-title">
-              <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/>
-              </svg>
-              <span id="participants-roster-title">Registered Participant Roster</span>
-              <span class="section-badge" id="roster-count-badge" aria-live="polite">0</span>
+              <i data-lucide="bar-chart-2" class="panel-title-icon"></i>
+              <span>Score Performance Tiers</span>
             </div>
-
-            <!-- Toolbar: Search + Pagination -->
-            <div class="table-toolbar">
-              <div class="search-input-wrap">
-                <i data-lucide="search" class="search-icon-inside"></i>
-                <input type="text" id="roster-search-input" placeholder="Search by student name or username…" aria-label="Search participants" />
-              </div>
-
-              <div class="table-pagination">
-                <span id="pagination-info">Showing 1–50</span>
-                <button class="btn-pagination" id="btn-prev-page" type="button" disabled>Previous</button>
-                <button class="btn-pagination" id="btn-next-page" type="button">Next</button>
-              </div>
-            </div>
-
-            <!-- Table -->
-            <div class="table-container">
-              <table aria-label="Registered participants table">
-                <thead>
-                  <tr>
-                    <th style="width:48px" aria-label="Index">#</th>
-                    <th>Student Name</th>
-                    <th>Username</th>
-                    <th>Grade / Section</th>
-                    <th>Registered At</th>
-                    <th>School / Organization</th>
-                  </tr>
-                </thead>
-                <tbody id="participants-tbody">
-                  <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">Loading participants…</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-      </div><!-- /kln-dashboard-view -->
-
-      <!-- ═══════════════════════════════════════════════════════
-           DOLPHIN PRELIMS DASHBOARD VIEW
-      ═══════════════════════════════════════════════════════ -->
-      <div id="dolphin-dashboard-view" style="display:none">
-
-        <!-- ── 1: Dolphin Curated KPI Cards (6 tiles) ────────── -->
-        <section class="panel-row" aria-labelledby="dolphin-kpi-title">
-          <div class="section-header">
-            <div class="section-title">
-              <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-              </svg>
-              <span id="dolphin-kpi-title">Dolphin PRELIMS — Cohort Performance Metrics</span>
+            <div class="chart-container" style="min-height:300px">
+              <canvas id="chart-score-tiers-canvas"></canvas>
             </div>
           </div>
 
-          <div class="kpi-grid kpi-grid-6" style="grid-template-columns: repeat(6, 1fr)">
-            <!-- 1: Total Enrolled -->
-            <div class="stat-card" style="--card-accent:#38bdf8;--card-icon-bg:rgba(56,189,248,0.12)" role="article" aria-label="Total Enrolled">
-              <div class="stat-card-header">
-                <span class="stat-label">Enrolled Cohort</span>
-                <button class="metric-help" type="button" data-help="Verified student accounts registered in UserEvent for Dolphin PRELIMS." aria-label="Help">
-                  <i data-lucide="info" style="width:12px;height:12px"></i>
-                </button>
-                <div class="stat-icon-wrap" aria-hidden="true"><i data-lucide="users"></i></div>
-              </div>
-              <div class="stat-value skeleton value-loading" id="kpi-dolphin-enrolled" aria-live="polite">&nbsp;</div>
-              <div class="stat-sub">Grades 3 through 8</div>
-            </div>
-
-            <!-- 2: Active Students -->
-            <div class="stat-card" style="--card-accent:#10b981;--card-icon-bg:rgba(16,185,129,0.12)" role="article" aria-label="Active Students">
-              <div class="stat-card-header">
-                <span class="stat-label">Active Students</span>
-                <button class="metric-help" type="button" data-help="Students with at least one recorded ChallengeStatus entry in database." aria-label="Help">
-                  <i data-lucide="info" style="width:12px;height:12px"></i>
-                </button>
-                <div class="stat-icon-wrap" aria-hidden="true"><i data-lucide="user-check"></i></div>
-              </div>
-              <div class="stat-value skeleton value-loading" id="kpi-dolphin-active" aria-live="polite">&nbsp;</div>
-              <div class="stat-sub" id="kpi-dolphin-active-sub">8.1% activity rate</div>
-            </div>
-
-            <!-- 3: Attempted Students -->
-            <div class="stat-card" style="--card-accent:#3b82f6;--card-icon-bg:rgba(59,130,246,0.12)" role="article" aria-label="Attempted Students">
-              <div class="stat-card-header">
-                <span class="stat-label">Attempted &ge; 1</span>
-                <button class="metric-help" type="button" data-help="Students who executed one or more recorded challenge attempts." aria-label="Help">
-                  <i data-lucide="info" style="width:12px;height:12px"></i>
-                </button>
-                <div class="stat-icon-wrap" aria-hidden="true"><i data-lucide="play-circle"></i></div>
-              </div>
-              <div class="stat-value skeleton value-loading" id="kpi-dolphin-attempted" aria-live="polite">&nbsp;</div>
-              <div class="stat-sub" id="kpi-dolphin-attempted-sub">6.3% of cohort</div>
-            </div>
-
-            <!-- 4: Total Recorded Attempts -->
-            <div class="stat-card" style="--card-accent:#f59e0b;--card-icon-bg:rgba(245,158,11,0.12)" role="article" aria-label="Total Attempts">
-              <div class="stat-card-header">
-                <span class="stat-label">Total Attempts</span>
-                <button class="metric-help" type="button" data-help="Cumulative challenge execution attempts recorded across all students." aria-label="Help">
-                  <i data-lucide="info" style="width:12px;height:12px"></i>
-                </button>
-                <div class="stat-icon-wrap" aria-hidden="true"><i data-lucide="zap"></i></div>
-              </div>
-              <div class="stat-value skeleton value-loading" id="kpi-dolphin-attempts" aria-live="polite">&nbsp;</div>
-              <div class="stat-sub">Across 105 challenge rows</div>
-            </div>
-
-            <!-- 5: Indicative Lockouts -->
-            <div class="stat-card" style="--card-accent:#ef4444;--card-icon-bg:rgba(239,68,68,0.12)" role="article" aria-label="Locked Challenges">
-              <div class="stat-card-header">
-                <span class="stat-label">Locked Records</span>
-                <button class="metric-help" type="button" data-help="Recorded challenges flagged isLocked = true. Indicative lockout signal, not an official failed exam result." aria-label="Help">
-                  <i data-lucide="info" style="width:12px;height:12px"></i>
-                </button>
-                <div class="stat-icon-wrap" aria-hidden="true"><i data-lucide="lock"></i></div>
-              </div>
-              <div class="stat-value skeleton value-loading" id="kpi-dolphin-locks" aria-live="polite">&nbsp;</div>
-              <div class="stat-sub" id="kpi-dolphin-locks-sub">Affecting 16 students</div>
-            </div>
-
-            <!-- 6: Score Pipeline Status -->
-            <div class="stat-card" style="--card-accent:#8b5cf6;--card-icon-bg:rgba(139,92,246,0.12)" role="article" aria-label="Scoring Pipeline">
-              <div class="stat-card-header">
-                <span class="stat-label">Scoring Status</span>
-                <button class="metric-help" type="button" data-help="Official exam scores are awaiting ingestion from the platform team. All stored database scores currently 0." aria-label="Help">
-                  <i data-lucide="info" style="width:12px;height:12px"></i>
-                </button>
-                <div class="stat-icon-wrap" aria-hidden="true"><i data-lucide="shield-alert"></i></div>
-              </div>
-              <div class="stat-value skeleton value-loading" id="kpi-dolphin-score-status" style="font-size:1.1rem;letter-spacing:-0.01em" aria-live="polite">&nbsp;</div>
-              <div class="stat-sub">Awaiting Ingestion</div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ── 2: Top 3 Contest Podium ────────────────────────── -->
-        <section class="panel-row" aria-labelledby="dolphin-podium-title">
-          <div class="section-header">
-            <div class="section-title">
-              <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-              </svg>
-              <span id="dolphin-podium-title">Top 3 Contest Podium</span>
-            </div>
-          </div>
-
-          <!-- Pending State Banner (Hidden) -->
-          <div class="podium-pending-notice" id="podium-pending-notice" style="display:none">
-            <div class="podium-pending-icon">
-              <i data-lucide="award" style="width:24px;height:24px"></i>
-            </div>
-            <div class="podium-pending-text">
-              <h3>Contest Podium Standings</h3>
-              <p>Top 3 rankings across participating students.</p>
-            </div>
-          </div>
-
-          <!-- Podium Grid (Gold, Silver, Bronze) -->
-          <div class="podium-grid" id="dolphin-podium-grid">
-            <!-- Rank 2: Silver -->
-            <div class="podium-card podium-silver">
-              <div class="podium-rank-badge">🥈 Rank 2 · Silver</div>
-              <div class="podium-avatar">2</div>
-              <div class="podium-name" id="podium-rank2-name">Dhaswanth Sankar P</div>
-              <div class="podium-grade" id="podium-rank2-grade">Grade 5</div>
-              <div class="podium-score" id="podium-rank2-score">15 Attempts</div>
-              <div style="display:none" id="podium-rank2-meta"></div>
-            </div>
-
-            <!-- Rank 1: Gold (Center) -->
-            <div class="podium-card podium-gold">
-              <div class="podium-rank-badge">🥇 Rank 1 · Gold Champion</div>
-              <div class="podium-avatar">1</div>
-              <div class="podium-name" id="podium-rank1-name">B. Ila</div>
-              <div class="podium-grade" id="podium-rank1-grade">Grade 4</div>
-              <div class="podium-score" id="podium-rank1-score" style="color:#eab308">16 Attempts</div>
-              <div style="display:none" id="podium-rank1-meta"></div>
-            </div>
-
-            <!-- Rank 3: Bronze -->
-            <div class="podium-card podium-bronze">
-              <div class="podium-rank-badge">🥉 Rank 3 · Bronze</div>
-              <div class="podium-avatar">3</div>
-              <div class="podium-name" id="podium-rank3-name">R.M.kaviyazhini</div>
-              <div class="podium-grade" id="podium-rank3-grade">Grade 4</div>
-              <div class="podium-score" id="podium-rank3-score" style="color:#fb923c">10 Attempts</div>
-              <div style="display:none" id="podium-rank3-meta"></div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ── 3: Row 1 — Grade Engagement & Progression Funnel ─ -->
-        <section class="panel-row" aria-labelledby="dolphin-row1-title">
-          <div class="two-col-grid" style="grid-template-columns: 1.25fr 1fr">
-            <!-- Chart A: Grade-wise Engagement -->
-            <div class="panel">
-              <div class="panel-title">
-                <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/>
-                  <line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/>
-                </svg>
-                <span>Grade-wise Engagement Comparison</span>
-                <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Enrolled vs. Active</span>
-              </div>
-              <div class="chart-container" style="min-height:330px" aria-label="Grade Engagement Bar Chart">
-                <canvas id="chart-dolphin-grade-canvas"></canvas>
-              </div>
-            </div>
-
-            <!-- Chart B: Activity Progression Funnel -->
-            <div class="panel">
-              <div class="panel-title">
-                <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
-                </svg>
-                <span>Participation Progression Funnel</span>
-                <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Activity stages</span>
-              </div>
-              <div class="chart-container" style="min-height:330px" aria-label="Participation Progression Funnel Chart">
-                <canvas id="chart-dolphin-funnel-canvas"></canvas>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ── 4: Row 2 — Challenge Types & Top Challenges ──── -->
-        <section class="panel-row" aria-labelledby="dolphin-row2-title">
-          <div class="two-col-grid" style="grid-template-columns: 1fr 1fr">
-            <!-- Chart C: Challenge Types & Lockouts -->
-            <div class="panel">
-              <div class="panel-title">
-                <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-                  <line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
-                </svg>
-                <span>Challenge Types &amp; Attempt Volume</span>
-                <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Attempts vs. Locks</span>
-              </div>
-              <div class="chart-container" style="min-height:330px" aria-label="Challenge Types Chart">
-                <canvas id="chart-dolphin-types-canvas"></canvas>
-              </div>
-            </div>
-
-            <!-- Chart D: Most-Attempted Challenges -->
-            <div class="panel">
-              <div class="panel-title">
-                <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                </svg>
-                <span>Most-Opened / Attempted Challenges</span>
-                <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Top challenge IDs</span>
-              </div>
-              <div class="chart-container" style="min-height:330px" aria-label="Most-Attempted Challenges Chart">
-                <canvas id="chart-dolphin-topch-canvas"></canvas>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- ── 5: Student Activity & Intervention Roster Table ─ -->
-        <section class="panel-row" aria-labelledby="dolphin-roster-title">
+          <!-- Chart 2: Grade-Level Comparison -->
           <div class="panel">
             <div class="panel-title">
-              <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/>
-              </svg>
-              <span id="dolphin-roster-title">Student Activity &amp; Intervention Roster</span>
-              <span class="section-badge" id="dolphin-roster-count-badge" aria-live="polite">0</span>
+              <i data-lucide="layers" class="panel-title-icon"></i>
+              <span>Grade-Level Score Comparison</span>
             </div>
-
-            <!-- Toolbar: Search + Filters + Pagination -->
-            <div class="table-toolbar">
-              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:1">
-                <div class="search-input-wrap" style="max-width:280px">
-                  <i data-lucide="search" class="search-icon-inside"></i>
-                  <input type="text" id="dolphin-roster-search-input" placeholder="Search student name or username…" aria-label="Search students" />
-                </div>
-
-                <!-- Grade Filter -->
-                <select id="dolphin-roster-grade-filter" class="filter-select-sm" aria-label="Filter by Grade">
-                  <option value="all">All Grades (3–8)</option>
-                  <option value="3">Grade 3</option>
-                  <option value="4">Grade 4</option>
-                  <option value="5">Grade 5</option>
-                  <option value="6">Grade 6</option>
-                  <option value="7">Grade 7</option>
-                  <option value="8">Grade 8</option>
-                </select>
-
-                <!-- Status Filter -->
-                <select id="dolphin-roster-status-filter" class="filter-select-sm" aria-label="Filter by Activity Status">
-                  <option value="all">All Activity Statuses</option>
-                  <option value="locked">Challenge Locked (16)</option>
-                  <option value="attempted">Attempted &ge; 1 (35)</option>
-                  <option value="active">Active Opened (45)</option>
-                  <option value="no_activity">No Activity (510)</option>
-                </select>
-              </div>
-
-              <div class="table-pagination">
-                <span id="dolphin-pagination-info">Showing 1–50</span>
-                <button class="btn-pagination" id="dolphin-btn-prev" type="button" disabled>Previous</button>
-                <button class="btn-pagination" id="dolphin-btn-next" type="button">Next</button>
-              </div>
-            </div>
-
-            <!-- Table -->
-            <div class="table-container">
-              <table aria-label="Student activity roster table">
-                <thead>
-                  <tr>
-                    <th style="width:48px">#</th>
-                    <th>Student Name</th>
-                    <th>Username</th>
-                    <th>Grade</th>
-                    <th>Challenges Opened</th>
-                    <th>Total Attempts</th>
-                    <th>Locked Records</th>
-                    <th>Last Recorded Activity</th>
-                    <th>Activity Status</th>
-                  </tr>
-                </thead>
-                <tbody id="dolphin-roster-tbody">
-                  <tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-muted)">Loading student activity…</td></tr>
-                </tbody>
-              </table>
+            <div class="chart-container" style="min-height:300px">
+              <canvas id="chart-grade-scores-canvas"></canvas>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <!-- ── 6: Top 10 Contest Leaderboard ──────────────── -->
-        <section class="panel-row" aria-labelledby="dolphin-leaderboard-title">
+      <!-- ── COHORT COMPOSITION CHARTS ────────────────────────── -->
+      <section class="panel-row">
+        <div class="two-col-grid" style="grid-template-columns: 1.25fr 1fr">
+          <!-- Chart 3: Grade Cohort Engagement -->
           <div class="panel">
             <div class="panel-title">
-              <svg class="panel-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
-                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
-                <path d="M4 22h16"/>
-                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
-                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
-                <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
-              </svg>
-              <span id="dolphin-leaderboard-title">Top 10 Contest Leaderboard</span>
-              <span style="font-size:0.7rem;color:var(--text-muted);margin-left:auto">Current Standings</span>
+              <i data-lucide="graduation-cap" class="panel-title-icon"></i>
+              <span>Cohort Distribution by Academic Grade</span>
             </div>
-
-            <!-- Leaderboard Standby Notice (Hidden) -->
-            <div id="dolphin-leaderboard-standby" style="display:none;padding:28px 24px;text-align:center;background:rgba(255,255,255,0.02);border-radius:12px;margin:16px 0">
-              <i data-lucide="shield-alert" style="width:36px;height:36px;color:#f59e0b;margin-bottom:10px"></i>
-              <div style="font-size:1.05rem;font-weight:700;color:var(--text-primary);margin-bottom:6px">Contest Standings</div>
-              <div style="font-size:0.84rem;color:var(--text-secondary);max-width:620px;margin:0 auto;line-height:1.5">
-                Top student standings based on verified contest performance.
-              </div>
-            </div>
-
-            <!-- Leaderboard Table Container -->
-            <div class="table-container" id="dolphin-leaderboard-table-wrap">
-              <table aria-label="Top 10 Contest Leaderboard">
-                <thead>
-                  <tr>
-                    <th style="width:60px">Rank</th>
-                    <th>Student Name</th>
-                    <th>Username</th>
-                    <th>Grade</th>
-                    <th>Total Attempts</th>
-                  </tr>
-                </thead>
-                <tbody id="dolphin-leaderboard-tbody">
-                  <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted)">Loading leaderboard…</td></tr>
-                </tbody>
-              </table>
+            <div class="chart-container" style="min-height:300px">
+              <canvas id="chart-grade-cohort-canvas"></canvas>
             </div>
           </div>
-        </section>
 
-      </div><!-- /dolphin-dashboard-view -->
+          <!-- Chart 4: Participation Funnel -->
+          <div class="panel">
+            <div class="panel-title">
+              <i data-lucide="filter" class="panel-title-icon"></i>
+              <span>Participation &amp; Progression Funnel</span>
+            </div>
+            <div class="chart-container" style="min-height:300px">
+              <canvas id="chart-funnel-canvas"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
 
-    </main><!-- /main-content -->
-  </div><!-- /page-wrapper -->
+      <!-- ── PARTICIPANT ROSTER & MONITOR TABLE ──────────────── -->
+      <section class="panel-row">
+        <div class="panel">
+          <div class="panel-title">
+            <i data-lucide="users" class="panel-title-icon"></i>
+            <span>Enrolled Student Roster &amp; Evaluation Monitor</span>
+            <span class="section-badge" id="roster-count-badge">0</span>
+          </div>
 
-  <!-- ── Footer ─────────────────────────────────────────────── -->
-  <footer style="text-align:center;padding:var(--space-md);font-size:0.85rem;color:var(--text-muted);border-top:1px solid var(--border)">
-    Codevyuh Competition Analytics &nbsp;·&nbsp; Powered by <strong style="color:var(--text-secondary)">Tarcin Robotics</strong>
+          <!-- Table Toolbar -->
+          <div class="table-toolbar">
+            <div class="toolbar-filters">
+              <div class="search-wrap">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="roster-search-input" class="search-input" placeholder="Search student name or username…" aria-label="Search students" />
+              </div>
+
+              <select id="roster-grade-filter" class="select-sm" aria-label="Filter by Grade">
+                <option value="all">All Grades</option>
+              </select>
+
+              <select id="roster-status-filter" class="select-sm" aria-label="Filter by Activity Status">
+                <option value="all">All Activity Statuses</option>
+                <option value="locked">Indicative Lockouts</option>
+                <option value="attempted">Attempted &ge; 1</option>
+                <option value="active">Active Opened</option>
+                <option value="no_activity">No Activity</option>
+              </select>
+
+              <button type="button" class="btn-action secondary" id="btn-export-roster-table" title="Export filtered roster to CSV">
+                <i data-lucide="download" style="width:14px;height:14px"></i>
+                <span>Export CSV</span>
+              </button>
+            </div>
+
+            <div class="table-pagination">
+              <span id="roster-pagination-info">Showing 1–50</span>
+              <button class="btn-page" id="btn-roster-prev" type="button" disabled>Previous</button>
+              <button class="btn-page" id="btn-roster-next" type="button">Next</button>
+            </div>
+          </div>
+
+          <!-- Roster Table -->
+          <div class="table-container">
+            <table aria-label="Student activity and evaluation roster table">
+              <thead>
+                <tr>
+                  <th style="width:48px">#</th>
+                  <th>Student Name</th>
+                  <th>Username</th>
+                  <th>Grade</th>
+                  <th>Opened</th>
+                  <th>Attempts</th>
+                  <th>Locked</th>
+                  <th>Exam Score</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="roster-tbody">
+                <tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text-muted)">Loading students…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Clean Enterprise Footer -->
+  <footer style="text-align:center;padding:24px var(--space-lg);font-size:0.76rem;color:var(--text-muted);border-top:1px solid var(--border)">
+    &copy; 2026 Codevyuh Assessment Platform &nbsp;&bull;&nbsp; Madurai Tech Cup Competition Series &nbsp;&bull;&nbsp; All rights reserved.
   </footer>
 
-  <!-- JS (ES module) -->
+  <!-- Scripts -->
   <script src="/js/theme.js"></script>
   <script src="/js/auth-client.js"></script>
   <script type="module" src="/js/admin-overview.js"></script>
-  <script>document.addEventListener('DOMContentLoaded', () => { if(window.lucide) lucide.createIcons(); });</script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (window.lucide) lucide.createIcons();
+    });
+  </script>
 </body>
 </html>

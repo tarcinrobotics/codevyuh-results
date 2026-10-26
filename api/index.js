@@ -84,10 +84,10 @@ app.get('/dolphin/dashboard', requireEventAccess('e4bd56c6-924d-49bb-9c3a-e2c74e
 });
 
 app.get('/admin-overview', ...serveProtectedPage('admin-overview.html', ['super_admin', 'event_admin', 'school_management']));
-app.get('/zone-dashboard', ...serveProtectedPage('zone-dashboard.html', ['super_admin', 'event_admin', 'school_admin']));
-app.get('/parent-view', ...serveProtectedPage('parent-view.html', ['super_admin', 'event_admin', 'parent']));
-app.get('/student-report', ...serveProtectedPage('student-report.html', ['super_admin', 'event_admin', 'parent']));
-app.get('/user-management', ...serveProtectedPage('user-management.html', ['super_admin', 'event_admin']));
+app.get('/zone-dashboard', ...serveProtectedPage('zone-dashboard.html', ['super_admin', 'school_admin']));
+app.get('/parent-view', ...serveProtectedPage('parent-view.html', ['super_admin', 'parent']));
+app.get('/student-report', ...serveProtectedPage('student-report.html', ['super_admin', 'school_admin', 'parent']));
+app.get('/user-management', ...serveProtectedPage('user-management.html', ['super_admin']));
 
 app.get('/api/health', (req, res) => {
   res.json({

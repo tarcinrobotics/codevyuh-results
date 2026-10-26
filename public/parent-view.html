@@ -410,7 +410,7 @@
 <body>
 
   <!-- ── Top Bar ─────────────────────────────────────────────────────── -->
-  <header class="topbar">
+  <header class="topbar" role="banner">
     <div class="topbar-left">
       <div class="topbar-logo-wrap" aria-hidden="true">
         <i data-lucide="book-open" style="width:20px;height:20px;color:#fff"></i>
@@ -419,25 +419,11 @@
         <span class="topbar-title">Velammal School Campus Analysis</span>
         <span class="topbar-subtitle">School Management Platform</span>
       </div>
-      <div class="topbar-divider"></div>
-      <div class="route-switcher" aria-label="Dashboard navigation">
-        <span class="route-switcher-label">View</span>
-        <select class="route-select" aria-label="Change dashboard view" onchange="if (this.value) window.location.href = this.value;">
-          <option value="/admin-overview">Admin Overview</option>
-          <option value="/zone-dashboard">School Dashboard</option>
-          <option value="/parent-view" selected>Parent View</option>
-        </select>
-      </div>
     </div>
     <div class="topbar-right">
-      <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch theme">
+      <button class="theme-toggle-btn" type="button" data-theme-toggle aria-label="Toggle theme">
         <svg data-theme-icon viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"></svg>
-        <span data-theme-label>Dark Mode</span>
       </button>
-      <div class="powered-by" style="margin-left:16px">
-        <span class="powered-by-text">Powered by</span>
-        <img src="/tarcin-logo.webp" alt="Tarcin Robotics" class="powered-by-logo" />
-      </div>
     </div>
   </header>
 

@@ -79,19 +79,9 @@
   overflow: visible !important;
 }
 
-.panel::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, var(--brand-primary), var(--brand-secondary), transparent);
-  opacity: 0.6;
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-}
-
 .panel:hover {
   border-color: var(--border-active);
-  box-shadow: var(--shadow-panel), var(--shadow-glow);
+  box-shadow: var(--shadow-panel);
 }
 
 .panel-title {
@@ -126,24 +116,11 @@
   animation: fadeInUp 0.4s ease both;
 }
 
-.stat-card::after {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 3px;
-  background: var(--card-accent, var(--brand-primary));
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-  opacity: 0.7;
-  transition: opacity 0.2s;
-}
-
 .stat-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
   border-color: var(--border-active);
-  box-shadow: var(--shadow-panel), 0 8px 30px rgba(0,0,0,0.3);
+  box-shadow: 0 10px 24px -6px rgba(0, 0, 0, 0.45);
 }
-
-.stat-card:hover::after { opacity: 1; }
 
 .stat-card-header {
   display: flex;
