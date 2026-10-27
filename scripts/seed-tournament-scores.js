@@ -86,6 +86,7 @@ async function seedTournamentScores() {
 
   let dolphinSubValues = [];
   let dolphinCsValues = [];
+  let dolphinUeScores = [];
   const dolphinBaseDate = new Date('2026-08-13T06:00:00.000Z');
 
   for (let idx = 0; idx < dolphinStudents.length; idx++) {
@@ -146,12 +147,7 @@ async function seedTournamentScores() {
       });
     }
 
-    // Update UserEvent challengeScore
-    await query(`
-      UPDATE "UserEvent"
-      SET "challengeScore" = $1
-      WHERE "userId" = $2 AND "eventId" = $3;
-    `, [cumulativeScore, st.id, DOLPHIN_EVENT_ID]);
+    dolphinUeScores.push({ userId: st.id, eventId: DOLPHIN_EVENT_ID, score: cumulativeScore });
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -169,6 +165,7 @@ async function seedTournamentScores() {
 
   let klnSubValues = [];
   let klnCsValues = [];
+  let klnUeScores = [];
   const klnBaseDate = new Date('2026-08-20T06:00:00.000Z');
 
   for (let idx = 0; idx < klnStudents.length; idx++) {
@@ -225,11 +222,7 @@ async function seedTournamentScores() {
       });
     }
 
-    await query(`
-      UPDATE "UserEvent"
-      SET "challengeScore" = $1
-      WHERE "userId" = $2 AND "eventId" = $3;
-    `, [cumulativeScore, st.id, KLN_EVENT_ID]);
+    klnUeScores.push({ userId: st.id, eventId: KLN_EVENT_ID, score: cumulativeScore });
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -282,6 +275,25 @@ async function seedTournamentScores() {
         SET attempts = EXCLUDED.attempts,
             "isLocked" = EXCLUDED."isLocked",
             "updatedAt" = EXCLUDED."updatedAt";
+    `, params);
+  }
+
+  console.log(`[Seed] Batch updating UserEvent challengeScores...`);
+  const allUeScores = [...dolphinUeScores, ...klnUeScores];
+  const ueChunkSize = 200;
+  for (let i = 0; i < allUeScores.length; i += ueChunkSize) {
+    const chunk = allUeScores.slice(i, i + ueChunkSize);
+    const valueClauses = chunk.map((_, idx) => {
+      const b = idx * 3;
+      return `($${b + 1}::text, $${b + 2}::text, $${b + 3}::int)`;
+    }).join(', ');
+    const params = chunk.flatMap(r => [r.userId, r.eventId, r.score]);
+
+    await query(`
+      UPDATE "UserEvent" AS ue
+      SET "challengeScore" = v.score
+      FROM (VALUES ${valueClauses}) AS v(user_id, event_id, score)
+      WHERE ue."userId" = v.user_id AND ue."eventId" = v.event_id;
     `, params);
   }
 
