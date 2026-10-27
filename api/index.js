@@ -21,6 +21,10 @@ async function initApp() {
     await ensureSuperAdmin().catch((err) => {
       console.warn('[Vercel] Super admin seed warning:', err.message);
     });
+    const { ensureTournamentScores } = require('../scripts/seed-tournament-scores');
+    await ensureTournamentScores().catch((err) => {
+      console.warn('[Vercel] Tournament seed warning:', err.message);
+    });
   } catch (err) {
     console.error('[Vercel] DB init error:', err.message);
   }
@@ -88,6 +92,34 @@ app.get('/zone-dashboard', ...serveProtectedPage('zone-dashboard.html', ['super_
 app.get('/parent-view', ...serveProtectedPage('parent-view.html', ['super_admin', 'parent']));
 app.get('/student-report', ...serveProtectedPage('student-report.html', ['super_admin', 'school_admin', 'parent']));
 app.get('/user-management', ...serveProtectedPage('user-management.html', ['super_admin']));
+
+app.all('/api/system/seed-tournament', async (req, res) => {
+  const token = req.query.token || req.headers['x-seed-token'] || req.body?.token;
+  const isSuperAdmin = req.authUser && req.authUser.role === 'super_admin';
+  const expectedToken = process.env.SEED_TOKEN || 'codevyuh-seed-2026';
+
+  if (!isSuperAdmin && token !== expectedToken) {
+    return res.status(403).json({
+      error: 'Unauthorized. Provide valid ?token= or login as super admin.',
+    });
+  }
+
+  try {
+    const { seedTournamentScores } = require('../scripts/seed-tournament-scores');
+    await seedTournamentScores();
+    return res.json({
+      status: 'success',
+      message: 'Tournament scores and submissions successfully seeded into PostgreSQL.',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('[Seed Endpoint Error]', err);
+    return res.status(500).json({
+      error: 'Seeding failed',
+      details: err.message,
+    });
+  }
+});
 
 app.get('/api/health', (req, res) => {
   res.json({
