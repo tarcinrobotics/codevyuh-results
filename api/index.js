@@ -21,10 +21,6 @@ async function initApp() {
     await ensureSuperAdmin().catch((err) => {
       console.warn('[Vercel] Super admin seed warning:', err.message);
     });
-    const { ensureTournamentScores } = require('../scripts/seed-tournament-scores');
-    await ensureTournamentScores().catch((err) => {
-      console.warn('[Vercel] Tournament seed warning:', err.message);
-    });
   } catch (err) {
     console.error('[Vercel] DB init error:', err.message);
   }
