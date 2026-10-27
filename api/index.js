@@ -41,10 +41,7 @@ app.use(session({
   secret: authConfig.sessionSecret,
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: authConfig.mongoUri,
-    collectionName: 'sessions',
-  }),
+  store: authConfig.mongoUri ? MongoStore.create({ mongoUrl: authConfig.mongoUri, collectionName: 'sessions' }) : new session.MemoryStore(),
   cookie: {
     httpOnly: true,
     sameSite: 'lax',
