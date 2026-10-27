@@ -9,10 +9,34 @@ const { query } = require('../db');
 const Q = require('../queries/admin-overview.json');
 const { getScopedSchool, filterSchoolsForUser } = require('../auth/access');
 
+const ZONE_TO_EVENT = {
+  'KLN Vidyalaya CBSE Senior Secondary School': '0542016a-b443-421e-9ae0-a4787697b945',
+  'KLN PRELIMS': '0542016a-b443-421e-9ae0-a4787697b945',
+  'Dolphin PRELIMS': 'e4bd56c6-924d-49bb-9c3a-e2c74eab9f89',
+};
+
+const EVENT_TO_ZONE = {
+  '0542016a-b443-421e-9ae0-a4787697b945': 'KLN Vidyalaya CBSE Senior Secondary School',
+  'e4bd56c6-924d-49bb-9c3a-e2c74eab9f89': 'Dolphin PRELIMS',
+};
+
 // ── Helper ─────────────────────────────────────────────────────────────────
 function nullify(val) {
   return (val === 'null' || val === '' || val === undefined || val === null)
     ? null : String(val);
+}
+
+function resolveEventContext(req) {
+  const user = req.authUser;
+  if (user && user.role === 'event_admin' && user.eventId) {
+    const zoneName = EVENT_TO_ZONE[user.eventId] || 'Scoped Event';
+    return { eventId: user.eventId, zoneName };
+  }
+  const scopedZone = getScopedSchool(req, nullify(req.query.zone));
+  if (scopedZone && ZONE_TO_EVENT[scopedZone]) {
+    return { eventId: ZONE_TO_EVENT[scopedZone], zoneName: scopedZone };
+  }
+  return { eventId: null, zoneName: scopedZone };
 }
 
 /**
@@ -59,20 +83,19 @@ function applyStatusFilter(rows, zoneSet, key = 'zone') {
 // ── GET /api/admin-overview/filters ───────────────────────────────────────
 router.get('/filters', async (req, res) => {
   try {
-    const user = req.authUser;
-    if (user && user.role === 'event_admin' && user.eventId) {
-      if (user.eventId === '0542016a-b443-421e-9ae0-a4787697b945') {
-        return res.json({ zones: ['KLN Vidyalaya CBSE Senior Secondary School'] });
-      }
-      if (user.eventId === 'e4bd56c6-924d-49bb-9c3a-e2c74eab9f89') {
-        return res.json({ zones: ['Dolphin PRELIMS'] });
-      }
+    const { eventId, zoneName } = resolveEventContext(req);
+    if (req.authUser && req.authUser.role === 'event_admin') {
+      return res.json({ zones: [zoneName] });
     }
 
     const zones = await query(Q.filters.zones);
     const visible = filterSchoolsForUser(req, zones.rows, 'zone');
+    const zoneList = visible.map(r => r.zone);
+    if (!zoneList.includes('Dolphin PRELIMS')) {
+      zoneList.push('Dolphin PRELIMS');
+    }
     res.json({
-      zones: visible.map(r => r.zone),
+      zones: zoneList,
     });
   } catch (err) {
     console.error('[filters]', err.message);
@@ -83,10 +106,10 @@ router.get('/filters', async (req, res) => {
 // ── GET /api/admin-overview/summary ───────────────────────────────────────
 router.get('/summary', async (req, res) => {
   try {
-    const user = req.authUser;
+    const { eventId, zoneName } = resolveEventContext(req);
     let result;
 
-    if (user && user.role === 'event_admin' && user.eventId) {
+    if (eventId) {
       const sql = `
         WITH scoped_students AS (
           SELECT u.id
@@ -115,9 +138,8 @@ router.get('/summary', async (req, res) => {
             WHERE s."userId" IN (SELECT id FROM scoped_students)
           ) AS total_score
       `;
-      result = await query(sql, [user.eventId]);
+      result = await query(sql, [eventId]);
     } else {
-      const scopedZone = getScopedSchool(req, nullify(req.query.zone));
       const sql = `
         WITH scoped_students AS (
           SELECT u.id
@@ -147,7 +169,7 @@ router.get('/summary', async (req, res) => {
             WHERE s."userId" IN (SELECT id FROM scoped_students)
           ) AS total_score
       `;
-      result = await query(sql, [scopedZone]);
+      result = await query(sql, [zoneName]);
     }
 
     const summary = result.rows[0] || {};
@@ -176,23 +198,27 @@ router.get('/summary', async (req, res) => {
 // ── GET /api/admin-overview/zone-performance ──────────────────────────────
 router.get('/zone-performance', async (req, res) => {
   try {
-    const user = req.authUser;
-    if (user && user.role === 'event_admin' && user.eventId) {
-      const zoneName = user.eventId === '0542016a-b443-421e-9ae0-a4787697b945'
-        ? 'KLN Vidyalaya CBSE Senior Secondary School'
-        : 'Dolphin PRELIMS';
-      const count = user.eventId === '0542016a-b443-421e-9ae0-a4787697b945' ? 107 : 555;
-      return res.json([
-        { zone: zoneName, students: count, submissions: 0, total_score: 0, avg_score: 0 }
-      ]);
+    const { eventId, zoneName } = resolveEventContext(req);
+    if (eventId) {
+      const sql = `
+        SELECT
+          $2::text AS zone,
+          COUNT(DISTINCT u.id)::int AS student_count,
+          COUNT(s.id)::int AS submissions,
+          COALESCE(SUM(s.score), 0)::bigint AS total_score
+        FROM "UserEvent" ue
+        JOIN "User" u ON ue."userId" = u.id AND u.role = 'STUDENT'
+        LEFT JOIN "Submission" s ON s."userId" = u.id
+        WHERE ue."eventId" = $1::text
+      `;
+      const result = await query(sql, [eventId, zoneName]);
+      return res.json(result.rows);
     }
 
-    const zone   = getScopedSchool(req, nullify(req.query.zone));
     const status = nullify(req.query.status);
-
     const [result, zoneSet] = await Promise.all([
-      query(Q.zonePerformance, [zone]),
-      getStatusZoneSet(status, zone),
+      query(Q.zonePerformance, [zoneName]),
+      getStatusZoneSet(status, zoneName),
     ]);
 
     const rows = applyStatusFilter(result.rows, zoneSet, 'zone');
@@ -206,17 +232,37 @@ router.get('/zone-performance', async (req, res) => {
 // ── GET /api/admin-overview/progress-bands ────────────────────────────────
 router.get('/progress-bands', async (req, res) => {
   try {
-    const user = req.authUser;
-    if (user && user.role === 'event_admin' && user.eventId) {
-      return res.json([]);
+    const { eventId, zoneName } = resolveEventContext(req);
+    if (eventId) {
+      const sql = `
+        WITH student_totals AS (
+          SELECT
+            $2::text AS zone,
+            u.id AS student_id,
+            COALESCE(SUM(s.score), 0) AS total_score
+          FROM "UserEvent" ue
+          JOIN "User" u ON ue."userId" = u.id AND u.role = 'STUDENT'
+          LEFT JOIN "Submission" s ON s."userId" = u.id
+          WHERE ue."eventId" = $1::text
+          GROUP BY u.id
+        )
+        SELECT
+          zone,
+          COUNT(*) FILTER (WHERE student_id IS NOT NULL AND total_score = 0)::int AS no_submission_count,
+          COUNT(*) FILTER (WHERE total_score > 0 AND total_score < 300)::int AS emerging_count,
+          COUNT(*) FILTER (WHERE total_score >= 300 AND total_score < 1000)::int AS progressing_count,
+          COUNT(*) FILTER (WHERE total_score >= 1000)::int AS advanced_count
+        FROM student_totals
+        GROUP BY zone
+      `;
+      const result = await query(sql, [eventId, zoneName]);
+      return res.json(result.rows);
     }
 
-    const zone   = getScopedSchool(req, nullify(req.query.zone));
     const status = nullify(req.query.status);
-
     const [result, zoneSet] = await Promise.all([
-      query(Q.progressBands, [zone]),
-      getStatusZoneSet(status, zone),
+      query(Q.progressBands, [zoneName]),
+      getStatusZoneSet(status, zoneName),
     ]);
 
     const rows = applyStatusFilter(result.rows, zoneSet, 'zone');
@@ -230,17 +276,39 @@ router.get('/progress-bands', async (req, res) => {
 // ── GET /api/admin-overview/scoring-breakdown ─────────────────────────────
 router.get('/scoring-breakdown', async (req, res) => {
   try {
-    const user = req.authUser;
-    if (user && user.role === 'event_admin' && user.eventId) {
-      return res.json([]);
+    const { eventId, zoneName } = resolveEventContext(req);
+    if (eventId) {
+      const sql = `
+        SELECT
+          $2::text AS zone,
+          COALESCE(SUM(s.score), 0)::bigint AS total_score,
+          ROUND(COALESCE(SUM(GREATEST(0, COALESCE((s.data::jsonb->>'attempts')::numeric, 1) - 1) * 5.0), 0)::numeric, 2) AS total_wrong_deduction,
+          ROUND(COALESCE(SUM((COALESCE((s.data::jsonb->>'timeTaken')::numeric, 0) / 60.0) * 3.0), 0)::numeric, 2) AS total_time_deduction,
+          0.0 AS total_hint_deduction,
+          COUNT(s.id)::int AS submissions
+        FROM "UserEvent" ue
+        JOIN "User" u ON ue."userId" = u.id
+        LEFT JOIN "Submission" s ON s."userId" = u.id
+        WHERE ue."eventId" = $1::text AND s.score IS NOT NULL
+      `;
+      const result = await query(sql, [eventId, zoneName]);
+      const rows = result.rows.length && Number(result.rows[0].submissions) > 0
+        ? result.rows
+        : [{
+            zone: zoneName,
+            total_score: 0,
+            total_wrong_deduction: 0,
+            total_time_deduction: 0,
+            total_hint_deduction: 0,
+            submissions: 0
+          }];
+      return res.json(rows);
     }
 
-    const zone   = getScopedSchool(req, nullify(req.query.zone));
     const status = nullify(req.query.status);
-
     const [result, zoneSet] = await Promise.all([
-      query(Q.scoringBreakdown, [zone]),
-      getStatusZoneSet(status, zone),
+      query(Q.scoringBreakdown, [zoneName]),
+      getStatusZoneSet(status, zoneName),
     ]);
 
     const rows = applyStatusFilter(result.rows, zoneSet, 'zone');
@@ -254,17 +322,41 @@ router.get('/scoring-breakdown', async (req, res) => {
 // ── GET /api/admin-overview/zone-score-ranges ─────────────────────────────
 router.get('/zone-score-ranges', async (req, res) => {
   try {
-    const user = req.authUser;
-    if (user && user.role === 'event_admin' && user.eventId) {
-      return res.json([]);
+    const { eventId, zoneName } = resolveEventContext(req);
+    if (eventId) {
+      const sql = `
+        WITH zone_totals AS (
+          SELECT
+            $2::text AS zone,
+            COALESCE(SUM(s.score), 0) AS total_score
+          FROM "UserEvent" ue
+          JOIN "User" u ON ue."userId" = u.id
+          LEFT JOIN "Submission" s ON s."userId" = u.id
+          WHERE ue."eventId" = $1::text
+        )
+        SELECT
+          zone,
+          total_score,
+          CASE
+            WHEN total_score < 5000 THEN '0 – 5K'
+            WHEN total_score < 20000 THEN '5K – 20K'
+            WHEN total_score < 50000 THEN '20K – 50K'
+            WHEN total_score < 100000 THEN '50K – 100K'
+            WHEN total_score < 250000 THEN '100K – 250K'
+            WHEN total_score < 500000 THEN '250K – 500K'
+            ELSE '500K+'
+          END AS score_range
+        FROM zone_totals
+        GROUP BY zone, total_score
+      `;
+      const result = await query(sql, [eventId, zoneName]);
+      return res.json(result.rows);
     }
 
-    const zone   = getScopedSchool(req, nullify(req.query.zone));
     const status = nullify(req.query.status);
-
     const [result, zoneSet] = await Promise.all([
-      query(Q.zoneScoreRanges, [zone]),
-      getStatusZoneSet(status, zone),
+      query(Q.zoneScoreRanges, [zoneName]),
+      getStatusZoneSet(status, zoneName),
     ]);
 
     const rows = applyStatusFilter(result.rows, zoneSet, 'zone');
@@ -278,23 +370,29 @@ router.get('/zone-score-ranges', async (req, res) => {
 // ── GET /api/admin-overview/top-zones ────────────────────────────────────
 router.get('/top-zones', async (req, res) => {
   try {
-    const user = req.authUser;
-    if (user && user.role === 'event_admin' && user.eventId) {
-      const zoneName = user.eventId === '0542016a-b443-421e-9ae0-a4787697b945'
-        ? 'KLN Vidyalaya CBSE Senior Secondary School'
-        : 'Dolphin PRELIMS';
-      const count = user.eventId === '0542016a-b443-421e-9ae0-a4787697b945' ? 107 : 555;
-      return res.json([
-        { zone: zoneName, total_score: 0, student_count: count }
-      ]);
+    const { eventId, zoneName } = resolveEventContext(req);
+    if (eventId) {
+      const sql = `
+        SELECT
+          $2::text AS zone,
+          COUNT(DISTINCT u.id)::int AS total_members,
+          COUNT(DISTINCT CASE WHEN s.id IS NOT NULL THEN u.id END)::int AS active_members,
+          (COUNT(DISTINCT u.id) - COUNT(DISTINCT CASE WHEN s.id IS NOT NULL THEN u.id END))::int AS inactive_members,
+          ROUND(100.0 * COUNT(DISTINCT CASE WHEN s.id IS NOT NULL THEN u.id END) / NULLIF(COUNT(DISTINCT u.id), 0), 1) AS activity_rate,
+          COALESCE(SUM(s.score), 0)::bigint AS total_score
+        FROM "UserEvent" ue
+        JOIN "User" u ON ue."userId" = u.id AND u.role = 'STUDENT'
+        LEFT JOIN "Submission" s ON s."userId" = u.id
+        WHERE ue."eventId" = $1::text
+      `;
+      const result = await query(sql, [eventId, zoneName]);
+      return res.json(result.rows);
     }
 
-    const zone   = getScopedSchool(req, nullify(req.query.zone));
     const status = nullify(req.query.status);
-
     const [result, zoneSet] = await Promise.all([
-      query(Q.topPerformingZones, [zone]),
-      getStatusZoneSet(status, zone),
+      query(Q.topPerformingZones, [zoneName]),
+      getStatusZoneSet(status, zoneName),
     ]);
 
     const rows = applyStatusFilter(result.rows, zoneSet, 'zone');
@@ -308,17 +406,31 @@ router.get('/top-zones', async (req, res) => {
 // ── GET /api/admin-overview/top-students ────────────────────────────────
 router.get('/top-students', async (req, res) => {
   try {
-    const user = req.authUser;
-    if (user && user.role === 'event_admin' && user.eventId) {
-      return res.json([]);
+    const { eventId, zoneName } = resolveEventContext(req);
+    if (eventId) {
+      const sql = `
+        SELECT
+          COALESCE(u.name, u.username) AS student_name,
+          COALESCE(NULLIF(u.grade,''), 'Unknown') AS grade,
+          $2::text AS school,
+          COALESCE(SUM(s.score), 0)::bigint AS total_score
+        FROM "UserEvent" ue
+        JOIN "User" u ON ue."userId" = u.id AND u.role = 'STUDENT'
+        LEFT JOIN "Submission" s ON s."userId" = u.id
+        WHERE ue."eventId" = $1::text
+        GROUP BY u.id, u.name, u.username, u.grade
+        HAVING COALESCE(SUM(s.score), 0) > 0
+        ORDER BY total_score DESC NULLS LAST, student_name ASC
+        LIMIT 3
+      `;
+      const result = await query(sql, [eventId, zoneName]);
+      return res.json(result.rows);
     }
 
-    const zone = getScopedSchool(req, nullify(req.query.zone));
     const status = nullify(req.query.status);
-
     const [result, zoneSet] = await Promise.all([
-      query(Q.topStudents, [zone]),
-      getStatusZoneSet(status, zone),
+      query(Q.topStudents, [zoneName]),
+      getStatusZoneSet(status, zoneName),
     ]);
 
     const rows = applyStatusFilter(result.rows, zoneSet, 'school').slice(0, 3);

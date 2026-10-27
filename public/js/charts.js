@@ -1110,10 +1110,10 @@ export function buildActivityFunnelChart(canvasId, kpiData) {
   const ctx = getCleanCanvas(canvasId);
   if (!ctx) return null;
 
-  const enrolled = kpiData.enrolled || 555;
-  const active = kpiData.activeStudents || 45;
-  const attempted = kpiData.attemptedStudents || 35;
-  const locked = kpiData.studentsWithLocks || 16;
+  const enrolled = kpiData.enrolled ?? 0;
+  const active = kpiData.activeStudents ?? 0;
+  const attempted = kpiData.attemptedStudents ?? 0;
+  const locked = kpiData.studentsWithLocks ?? 0;
 
   const labels = [
     'Enrolled Cohort',
@@ -1374,3 +1374,188 @@ export function buildTopChallengesChart(canvasId, topChallenges) {
 }
 
 
+
+
+// ── Score-Based Analytics Charts ──────────────────────────────────────────
+
+/**
+ * Builds the Score Performance Distribution Chart (Performance Tiers)
+ * @param {string} canvasId
+ * @param {Object} distribution { mastery, proficient, developing, emerging, pending }
+ * @returns Chart instance
+ */
+export function buildScoreDistributionChart(canvasId, distribution) {
+  const ctx = getCleanCanvas(canvasId);
+  if (!ctx || !distribution) return null;
+
+  const labels = [
+    'Mastery (≥5,000 pts)',
+    'Proficient (2,500–4,999 pts)',
+    'Developing (1,000–2,499 pts)',
+    'Emerging (1–999 pts)',
+    'Pending (0 pts)',
+  ];
+
+  const counts = [
+    distribution.mastery || 0,
+    distribution.proficient || 0,
+    distribution.developing || 0,
+    distribution.emerging || 0,
+    distribution.pending || 0,
+  ];
+
+  const backgroundColors = [
+    hexAlpha('#10b981', 0.85), // Emerald
+    hexAlpha('#06b6d4', 0.85), // Cyan
+    hexAlpha('#f59e0b', 0.85), // Amber
+    hexAlpha('#f97316', 0.85), // Orange
+    hexAlpha('#64748b', 0.65), // Slate
+  ];
+
+  const borderColors = [
+    '#10b981',
+    '#06b6d4',
+    '#f59e0b',
+    '#f97316',
+    '#64748b',
+  ];
+
+  return new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Student Count',
+          data: counts,
+          backgroundColor: backgroundColors,
+          borderColor: borderColors,
+          borderWidth: 1.5,
+          borderRadius: 6,
+          maxBarThickness: 42,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (item) => {
+              const total = counts.reduce((a, b) => a + b, 0);
+              const pct = total > 0 ? ((item.parsed.y / total) * 100).toFixed(1) : 0;
+              return ` ${item.parsed.y} students (${pct}%)`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 10 } },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(255,255,255,0.06)' },
+          title: {
+            display: true,
+            text: 'Students',
+            color: '#8fa3bf',
+            font: { size: 10 },
+          },
+          ticks: { precision: 0 },
+        },
+      },
+    },
+  });
+}
+
+/**
+ * Builds Grade-Level Performance Comparison Chart
+ * @param {string} canvasId
+ * @param {Array} gradeScores [{ grade_label, enrolled, scored_count, avg_score, max_score }]
+ * @returns Chart instance
+ */
+export function buildGradeScoreChart(canvasId, gradeScores) {
+  const ctx = getCleanCanvas(canvasId);
+  if (!ctx || !Array.isArray(gradeScores)) return null;
+
+  const labels = gradeScores.map(g => g.grade_label);
+  const avgScores = gradeScores.map(g => parseFloat(g.avg_score) || 0);
+  const enrolled = gradeScores.map(g => parseInt(g.enrolled, 10) || 0);
+
+  return new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Avg Exam Score (pts)',
+          data: avgScores,
+          backgroundColor: hexAlpha('#38bdf8', 0.85),
+          borderColor: '#38bdf8',
+          borderWidth: 1.5,
+          borderRadius: 4,
+          yAxisID: 'yScore',
+          order: 1,
+        },
+        {
+          label: 'Enrolled Cohort',
+          data: enrolled,
+          backgroundColor: hexAlpha('#8b5cf6', 0.35),
+          borderColor: '#8b5cf6',
+          borderWidth: 1,
+          borderRadius: 4,
+          yAxisID: 'yCohort',
+          order: 2,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          position: 'top',
+          align: 'end',
+          labels: { usePointStyle: true, boxWidth: 10, padding: 12 },
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 10 } },
+        },
+        yScore: {
+          position: 'left',
+          beginAtZero: true,
+          grid: { color: 'rgba(255,255,255,0.06)' },
+          title: {
+            display: true,
+            text: 'Score (pts)',
+            color: '#38bdf8',
+            font: { size: 10 },
+          },
+          ticks: {
+            callback: (v) => Number(v).toLocaleString(),
+          },
+        },
+        yCohort: {
+          position: 'right',
+          beginAtZero: true,
+          grid: { display: false },
+          title: {
+            display: true,
+            text: 'Enrolled Students',
+            color: '#8b5cf6',
+            font: { size: 10 },
+          },
+          ticks: { precision: 0 },
+        },
+      },
+    },
+  });
+}

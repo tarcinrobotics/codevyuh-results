@@ -79,11 +79,11 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // If targetEvent was specified (e.g. from specific card), ensure account is authorized for that event
-    if (targetEvent && account.role !== 'super_admin') {
-      if (account.eventId !== targetEvent) {
+    // If targetEvent was specified, ensure account is authorized for that event (unless super_admin)
+    if (targetEvent && targetEvent !== 'all' && account.role !== 'super_admin') {
+      if (account.eventId && account.eventId !== targetEvent) {
         recordFailedAttempt(rateLimitKey);
-        return res.status(401).json({ error: 'Invalid credentials' });
+        return res.status(401).json({ error: 'This account is not authorized for the selected competition portal.' });
       }
     }
 
@@ -92,9 +92,20 @@ router.post('/login', async (req, res) => {
     const user = serializeUser(account);
     req.session.user = user;
 
+    let destination = returnTo && returnTo.startsWith('/') ? returnTo : user.home;
+    if (account.role === 'super_admin' && targetEvent) {
+      if (targetEvent === '0542016a-b443-421e-9ae0-a4787697b945') {
+        destination = '/kln/dashboard';
+      } else if (targetEvent === 'e4bd56c6-924d-49bb-9c3a-e2c74eab9f89') {
+        destination = '/dolphin/dashboard';
+      } else if (targetEvent !== 'all') {
+        destination = `/admin-overview?event=${encodeURIComponent(targetEvent)}`;
+      }
+    }
+
     res.json({
       user,
-      redirectTo: returnTo && returnTo.startsWith('/') ? returnTo : user.home,
+      redirectTo: destination,
     });
   } catch (err) {
     console.error('[auth/login]', err.message);

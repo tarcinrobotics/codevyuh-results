@@ -1,0 +1,9 @@
+node_modules
+.git
+.env
+.env.*
+*.log
+*.dump
+scratch/
+codevyuh-csv-files*
+graphify-out/

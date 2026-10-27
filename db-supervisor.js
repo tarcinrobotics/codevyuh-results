@@ -10,20 +10,27 @@
  */
 
 const net = require('net');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { Client } = require('pg');
 
+let dbConfig = null;
+try {
+  dbConfig = require('./config').db;
+} catch (_) {}
+
 // ── State & Configuration ──────────────────────────────────────────────────
-const PG_PORT = 54333;
-const PG_HOST = '127.0.0.1';
-const PG_DATA_DIR = 'D:\\temp_pgsql\\data';
+const PG_PORT = dbConfig?.port || parseInt(process.env.PGPORT || process.env.DB_PORT || '5432', 10);
+const PG_HOST = dbConfig?.host || process.env.PGHOST || process.env.DB_HOST || '127.0.0.1';
+const PG_USER = dbConfig?.user || process.env.PGUSER || 'postgres';
+const PG_PASSWORD = dbConfig?.password !== undefined ? dbConfig.password : (process.env.PGPASSWORD || '');
+const PG_DATA_DIR = process.env.PGDATA || 'C:\\Program Files\\PostgreSQL\\17\\data';
 const PG_BIN_CANDIDATES = [
-  'D:\\temp_pgsql\\pgsql\\bin\\postgres.exe',
-  'C:\\Program Files\\PostgreSQL\\18\\bin\\postgres.exe',
   'C:\\Program Files\\PostgreSQL\\17\\bin\\postgres.exe',
+  'C:\\Program Files\\PostgreSQL\\18\\bin\\postgres.exe',
   'C:\\Program Files\\PostgreSQL\\16\\bin\\postgres.exe',
+  'D:\\temp_pgsql\\pgsql\\bin\\postgres.exe',
 ];
 
 const MAX_STARTUP_ATTEMPTS = 3;
@@ -79,14 +86,15 @@ function checkTcpPort(host = PG_HOST, port = PG_PORT, timeoutMs = 800) {
  * Checks if PostgreSQL is fully ready to execute SQL queries.
  * Connects directly using a standalone pg.Client (bypassing the pool) and runs SELECT 1.
  */
-async function checkPostgresReadiness(host = PG_HOST, port = PG_PORT, dbName = 'postgres') {
+async function checkPostgresReadiness(host = PG_HOST, port = PG_PORT, dbName = 'codevyuh_db') {
   const portOpen = await checkTcpPort(host, port);
   if (!portOpen) return false;
 
   const client = new Client({
     host,
     port,
-    user: 'postgres',
+    user: PG_USER,
+    password: PG_PASSWORD,
     database: dbName,
     connectionTimeoutMillis: 1500,
   });
@@ -103,7 +111,7 @@ async function checkPostgresReadiness(host = PG_HOST, port = PG_PORT, dbName = '
 }
 
 /**
- * Inspects D:\temp_pgsql\data\postmaster.pid to see if an instance is already running.
+ * Inspects postmaster.pid to see if an instance is already running.
  */
 function getPostmasterPid() {
   const pidFile = path.join(PG_DATA_DIR, 'postmaster.pid');
@@ -125,11 +133,10 @@ function getPostmasterPid() {
 function isPidAlive(pid) {
   if (!pid) return false;
   try {
-    // Calling process.kill(pid, 0) tests existence without sending a signal
     process.kill(pid, 0);
     return true;
   } catch (e) {
-    return e.code === 'EPERM'; // Process exists but lack permission
+    return e.code === 'EPERM';
   }
 }
 
@@ -159,7 +166,6 @@ async function ensurePostgres(host = PG_HOST, port = PG_PORT, dbName = 'codevyuh
       console.warn(`[DB-Supervisor] Startup in backoff cooldown (${Math.round((COOLDOWN_DURATION_MS - elapsed) / 1000)}s remaining). Suppressing spawn.`);
       return false;
     }
-    // Cooldown expired, allow retry
     consecutiveFailures = 0;
   } else if (consecutiveFailures > 0) {
     const backoffMs = Math.min(1000 * Math.pow(2, consecutiveFailures - 1), 6000);
@@ -177,85 +183,77 @@ async function ensurePostgres(host = PG_HOST, port = PG_PORT, dbName = 'codevyuh
 
   // 4. Begin single startup operation
   activeStartupPromise = (async () => {
-    console.log(`[DB-Supervisor] PostgreSQL on ${host}:${port} is offline. Initiating single managed start...`);
+    console.log(`[DB-Supervisor] PostgreSQL on ${host}:${port} is offline. Checking services / startup...`);
+
+    // On Windows, try starting Windows Service first if available
+    if (process.platform === 'win32') {
+      try {
+        execSync('net start postgresql-x64-17', { stdio: 'ignore', windowsHide: true });
+        console.log(`[DB-Supervisor] Started Windows service postgresql-x64-17.`);
+      } catch (_) {}
+    }
 
     const pgBin = PG_BIN_CANDIDATES.find(p => fs.existsSync(p));
     if (!pgBin || !fs.existsSync(PG_DATA_DIR)) {
-      console.error(`[DB-Supervisor] PostgreSQL binary or data directory missing. Aborting.`);
-      lastKnownStatus = { isReady: false, checkedAt: Date.now(), message: 'PostgreSQL files not found' };
-      consecutiveFailures++;
-      lastFailureTimestamp = Date.now();
-      return false;
-    }
-
-    // Check if postmaster.pid already has an active PID
-    const existingPid = getPostmasterPid();
-    if (existingPid && isPidAlive(existingPid)) {
-      console.log(`[DB-Supervisor] Detected existing PostgreSQL process (PID: ${existingPid}). Waiting for readiness...`);
+      // If service started or port is now open, verify directly
+      const checkNow = await checkPostgresReadiness(host, port, dbName);
+      if (checkNow) {
+        lastKnownStatus = { isReady: true, checkedAt: Date.now(), message: 'Database operational' };
+        return true;
+      }
     } else {
-      // Clean up stale lock file if the process died previously
-      const pidFile = path.join(PG_DATA_DIR, 'postmaster.pid');
-      if (fs.existsSync(pidFile)) {
-        try {
-          fs.unlinkSync(pidFile);
-          console.log(`[DB-Supervisor] Cleaned up stale lock file ${pidFile}`);
-        } catch (_) {}
-      }
-
-      // Prefer pg_ctl.exe for detached daemon management on Windows
-      const pgCtl = path.join(path.dirname(pgBin), 'pg_ctl.exe');
-      const logFile = path.join(path.dirname(PG_DATA_DIR), 'logfile.log');
-
-      if (fs.existsSync(pgCtl)) {
-        console.log(`[DB-Supervisor] Starting detached PostgreSQL daemon via pg_ctl on port ${port}...`);
-        const ctlChild = spawn(pgCtl, [
-          'start',
-          '-D', PG_DATA_DIR,
-          '-l', logFile,
-          '-o', `-p ${port}`,
-          '-w',
-        ], {
-          windowsHide: true,
-          shell: false,
-          stdio: 'ignore',
-        });
-
-        await new Promise((resolve) => {
-          ctlChild.once('exit', () => resolve());
-          ctlChild.once('error', () => resolve());
-          setTimeout(resolve, 8000);
-        });
-        console.log(`[DB-Supervisor] pg_ctl startup completed. Verifying SQL readiness...`);
+      const existingPid = getPostmasterPid();
+      if (existingPid && isPidAlive(existingPid)) {
+        console.log(`[DB-Supervisor] Detected existing PostgreSQL process (PID: ${existingPid}). Waiting for readiness...`);
       } else {
-        console.log(`[DB-Supervisor] Spawning detached PostgreSQL daemon on port ${port}...`);
-        const child = spawn(pgBin, ['-D', PG_DATA_DIR, '-p', String(port)], {
-          detached: true,
-          stdio: 'ignore',
-          windowsHide: true,
-          shell: false,
-        });
-        child.unref();
-        console.log(`[DB-Supervisor] Daemon process spawned (PID: ${child.pid}). Waiting for initialization...`);
+        const pidFile = path.join(PG_DATA_DIR, 'postmaster.pid');
+        if (fs.existsSync(pidFile)) {
+          try { fs.unlinkSync(pidFile); } catch (_) {}
+        }
+
+        const pgCtl = path.join(path.dirname(pgBin), 'pg_ctl.exe');
+        const logFile = path.join(path.dirname(PG_DATA_DIR), 'logfile.log');
+
+        if (fs.existsSync(pgCtl)) {
+          console.log(`[DB-Supervisor] Starting detached PostgreSQL daemon via pg_ctl on port ${port}...`);
+          const ctlChild = spawn(pgCtl, [
+            'start',
+            '-D', PG_DATA_DIR,
+            '-l', logFile,
+            '-o', `-p ${port}`,
+            '-w',
+          ], {
+            windowsHide: true,
+            shell: false,
+            stdio: 'ignore',
+          });
+
+          await new Promise((resolve) => {
+            ctlChild.once('exit', () => resolve());
+            ctlChild.once('error', () => resolve());
+            setTimeout(resolve, 8000);
+          });
+        }
       }
     }
 
-    // 5. Poll for readiness with bounded timeout (12s)
+    // 5. Poll for readiness with bounded timeout (8s)
     const startTime = Date.now();
-    const timeoutMs = 12000;
+    const timeoutMs = 8000;
 
     while (Date.now() - startTime < timeoutMs) {
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 400));
       const ready = await checkPostgresReadiness(host, port, dbName);
       if (ready) {
         const elapsed = Date.now() - startTime;
-        console.log(`[DB-Supervisor] ✅ PostgreSQL is READY and accepting queries on port ${port} (took ${elapsed}ms).`);
+        console.log(`[DB-Supervisor] ✅ PostgreSQL is READY on port ${port} (took ${elapsed}ms).`);
         consecutiveFailures = 0;
         lastKnownStatus = { isReady: true, checkedAt: Date.now(), message: 'Database operational' };
         return true;
       }
     }
 
-    console.error(`[DB-Supervisor] ❌ Timed out waiting for PostgreSQL readiness after ${timeoutMs}ms.`);
+    console.error(`[DB-Supervisor] ❌ Timed out waiting for PostgreSQL readiness.`);
     consecutiveFailures++;
     lastFailureTimestamp = Date.now();
     lastKnownStatus = { isReady: false, checkedAt: Date.now(), message: 'Database startup timed out' };
@@ -269,7 +267,6 @@ async function ensurePostgres(host = PG_HOST, port = PG_PORT, dbName = 'codevyuh
 
 /**
  * Non-blocking auto-start request.
- * Can be called by routes when connection errors occur without blocking the request loop.
  */
 function requestAutoStart(host = PG_HOST, port = PG_PORT, dbName = 'codevyuh_db') {
   if (!activeStartupPromise) {

@@ -4,28 +4,40 @@ const bcrypt = require('bcryptjs');
 const { auth: authConfig } = require('../config');
 const UserAccount = require('./models/UserAccount');
 
-// On Windows / home ISPs, Node.js SRV resolution for mongodb+srv can fail with ECONNREFUSED.
-// Configuring public DNS resolvers ensures Atlas SRV connection succeeds reliably.
 try {
   dns.setServers(['8.8.8.8', '1.1.1.1']);
 } catch (_) {}
 
+let mongoConnected = false;
+
+function isMongoConnected() {
+  return mongoConnected && mongoose.connection.readyState === 1;
+}
+
 async function connectMongo() {
-  if (mongoose.connection.readyState === 1) return mongoose.connection;
+  if (mongoose.connection.readyState === 1) {
+    mongoConnected = true;
+    return mongoose.connection;
+  }
+
+  // If no mongoUri or default local without running daemon, test quickly
+  if (!authConfig.mongoUri) {
+    console.log('[Auth] No MONGO_URI specified; using resilient in-memory auth store.');
+    return null;
+  }
 
   try {
     await mongoose.connect(authConfig.mongoUri, {
-      serverSelectionTimeoutMS: 15000,
+      serverSelectionTimeoutMS: 2000,
     });
+    mongoConnected = true;
+    console.log('✅  [Auth] Connected to MongoDB.');
+    return mongoose.connection;
   } catch (err) {
-    console.warn('[Mongo] Initial connection attempt failed, retrying in 2s...', err.message);
-    await new Promise(r => setTimeout(r, 2000));
-    await mongoose.connect(authConfig.mongoUri, {
-      serverSelectionTimeoutMS: 15000,
-    });
+    mongoConnected = false;
+    console.log(`ℹ️   [Auth] MongoDB not available (${err.message}). Using resilient in-memory auth store.`);
+    return null;
   }
-
-  return mongoose.connection;
 }
 
 const EVENT_ADMIN_DEFINITIONS = [
@@ -93,16 +105,16 @@ async function ensureSuperAdmin() {
       passwordHash,
       isActive: true,
     });
-    console.log(`\n🔐  Seeded default super admin: ${username}`);
-    console.log('    Update SUPER_ADMIN_USERNAME / SUPER_ADMIN_PASSWORD in .env for production use.\n');
+    console.log(`🔐  Seeded default super admin: ${username}`);
   }
 
   await ensureEventAdmins();
-  return existing;
 }
 
 module.exports = {
   connectMongo,
+  isMongoConnected,
   ensureSuperAdmin,
   ensureEventAdmins,
+  EVENT_ADMIN_DEFINITIONS,
 };

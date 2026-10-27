@@ -49,11 +49,11 @@ function requireEventAccess(targetEventId, mode = 'page') {
 
 function blockProtectedStaticFiles() {
   const protectedFiles = new Map([
-    ['/admin-overview.html', ['super_admin', 'event_admin', 'school_management', 'school_admin']],
-    ['/zone-dashboard.html', ['super_admin', 'event_admin', 'school_admin', 'school_management']],
-    ['/parent-view.html', ['super_admin', 'event_admin', 'parent']],
-    ['/student-report.html', ['super_admin', 'event_admin', 'parent']],
-    ['/user-management.html', ['super_admin', 'event_admin']],
+    ['/admin-overview.html', ['super_admin', 'event_admin', 'school_management']],
+    ['/zone-dashboard.html', ['super_admin', 'school_admin']],
+    ['/parent-view.html', ['super_admin', 'parent']],
+    ['/student-report.html', ['super_admin', 'school_admin', 'parent']],
+    ['/user-management.html', ['super_admin']],
   ]);
 
   return (req, res, next) => {

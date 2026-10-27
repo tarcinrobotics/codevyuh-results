@@ -1,6 +1,6 @@
 {
   "_schema_notes": {
-    "Submission": "id, userId, level(int), score(int), data(json: timeTaken secs, attempts), createdAt",
+    "Submission": "id, userId, trackId, challengeId, score(int), data(json: timeTaken secs, attempts), createdAt",
     "User": "id, username, name, grade, role, schoolId",
     "School": "id, name — the 'zone'",
     "scoring": "base 100, wrong: (attempts-1)*-5, time: (timeTaken/60)*-3, min 50"
@@ -12,7 +12,7 @@
 
   "topStudents": "SELECT COALESCE(u.name, u.username) AS student_name, u.grade, COUNT(s.id)::int AS submissions, COALESCE(SUM(s.score), 0)::int AS total_score, MAX(s.score)::int AS best_score FROM \"User\" u JOIN \"School\" sc ON u.\"schoolId\" = sc.id LEFT JOIN \"Submission\" s ON s.\"userId\" = u.id WHERE sc.name = $1::text AND u.role = 'STUDENT' GROUP BY u.id, u.name, u.username, u.grade ORDER BY total_score DESC NULLS LAST LIMIT 15",
 
-  "levelBreakdown": "SELECT s.level, COUNT(*)::int AS submissions, COALESCE(SUM(s.score), 0)::bigint AS total_score, ROUND(AVG(COALESCE((s.data::jsonb->>'timeTaken')::numeric, 0) / 60.0)::numeric, 2) AS avg_time_min, ROUND(AVG(GREATEST(0, COALESCE((s.data::jsonb->>'attempts')::numeric, 1) - 1) * -5.0)::numeric, 2) AS avg_wrong_deduction, ROUND(AVG((COALESCE((s.data::jsonb->>'timeTaken')::numeric, 0) / 60.0) * -3.0)::numeric, 2) AS avg_time_deduction FROM \"Submission\" s JOIN \"User\" u ON s.\"userId\" = u.id JOIN \"School\" sc ON u.\"schoolId\" = sc.id WHERE sc.name = $1::text GROUP BY s.level ORDER BY s.level ASC",
+  "levelBreakdown": "SELECT (CASE WHEN s.\"challengeId\" ~ '-[1-4]-[0-9]+$' THEN (regexp_match(s.\"challengeId\", '-([1-4])-[0-9]+$'))[1]::int WHEN s.\"trackId\" = 'logic' THEN 1 WHEN s.\"trackId\" = 'debug' THEN 2 WHEN s.\"trackId\" = 'systems' THEN 3 WHEN s.\"trackId\" = 'python' THEN 4 ELSE 1 END) AS level, COUNT(*)::int AS submissions, COALESCE(SUM(s.score), 0)::bigint AS total_score, ROUND(AVG(COALESCE((s.data::jsonb->>'timeTaken')::numeric, 0) / 60.0)::numeric, 2) AS avg_time_min, ROUND(AVG(GREATEST(0, COALESCE((s.data::jsonb->>'attempts')::numeric, 1) - 1) * -5.0)::numeric, 2) AS avg_wrong_deduction, ROUND(AVG((COALESCE((s.data::jsonb->>'timeTaken')::numeric, 0) / 60.0) * -3.0)::numeric, 2) AS avg_time_deduction FROM \"Submission\" s JOIN \"User\" u ON s.\"userId\" = u.id JOIN \"School\" sc ON u.\"schoolId\" = sc.id WHERE sc.name = $1::text GROUP BY (CASE WHEN s.\"challengeId\" ~ '-[1-4]-[0-9]+$' THEN (regexp_match(s.\"challengeId\", '-([1-4])-[0-9]+$'))[1]::int WHEN s.\"trackId\" = 'logic' THEN 1 WHEN s.\"trackId\" = 'debug' THEN 2 WHEN s.\"trackId\" = 'systems' THEN 3 WHEN s.\"trackId\" = 'python' THEN 4 ELSE 1 END) ORDER BY level ASC",
 
   "scoreDistribution": "WITH student_totals AS (SELECT u.id, COALESCE(SUM(s.score), 0) AS total FROM \"User\" u JOIN \"School\" sc ON u.\"schoolId\" = sc.id LEFT JOIN \"Submission\" s ON s.\"userId\" = u.id WHERE sc.name = $1::text AND u.role = 'STUDENT' GROUP BY u.id) SELECT CASE WHEN total = 0 THEN 'No submissions' WHEN total < 100 THEN '1 – 100' WHEN total < 300 THEN '100 – 300' WHEN total < 500 THEN '300 – 500' WHEN total < 1000 THEN '500 – 1K' WHEN total < 2000 THEN '1K – 2K' WHEN total < 5000 THEN '2K – 5K' ELSE '5K+' END AS score_range, COUNT(*)::int AS student_count FROM student_totals GROUP BY score_range ORDER BY MIN(total) ASC",
 

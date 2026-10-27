@@ -8,7 +8,7 @@ const path = require('path');
 const session = require('express-session');
 const MongoStore = require('connect-mongo').default;
 const { server: serverConfig, auth: authConfig, db: dbConfig } = require('./config');
-const { connectMongo, ensureSuperAdmin } = require('./auth/mongo');
+const { connectMongo, isMongoConnected, ensureSuperAdmin } = require('./auth/mongo');
 const { getHomeForRole, getSessionUser } = require('./auth/access');
 const { requireApiRoles, requireEventAccess, blockProtectedStaticFiles, serveProtectedPage } = require('./auth/middleware');
 const { ensurePostgres, getDatabaseStatus, getLiveDatabaseStatus } = require('./db-supervisor');
@@ -24,15 +24,19 @@ async function bootstrap() {
   app.use(express.json());
   app.use(express.urlencoded({ extended: false }));
 
+  const sessionStore = isMongoConnected() && authConfig.mongoUri
+    ? MongoStore.create({
+        mongoUrl: authConfig.mongoUri,
+        collectionName: 'sessions',
+      })
+    : new session.MemoryStore();
+
   app.use(session({
     name: authConfig.sessionName,
     secret: authConfig.sessionSecret,
     resave: false,
     saveUninitialized: false,
-    store: MongoStore.create({
-      mongoUrl: authConfig.mongoUri,
-      collectionName: 'sessions',
-    }),
+    store: sessionStore,
     cookie: {
       httpOnly: true,
       sameSite: 'lax',
@@ -71,19 +75,19 @@ async function bootstrap() {
     res.sendFile(path.join(__dirname, 'public', 'admin-overview.html'));
   });
 
-  // Preserved Four Dashboard Routes
+  // Preserved Dashboard Routes
   app.get('/admin-overview', ...serveProtectedPage('admin-overview.html', ['super_admin', 'event_admin', 'school_management']));
-  app.get('/zone-dashboard', ...serveProtectedPage('zone-dashboard.html', ['super_admin', 'event_admin', 'school_admin']));
-  app.get('/parent-view', ...serveProtectedPage('parent-view.html', ['super_admin', 'event_admin', 'parent']));
-  app.get('/student-report', ...serveProtectedPage('student-report.html', ['super_admin', 'event_admin', 'parent']));
-  app.get('/user-management', ...serveProtectedPage('user-management.html', ['super_admin', 'event_admin']));
+  app.get('/zone-dashboard', ...serveProtectedPage('zone-dashboard.html', ['super_admin', 'school_admin']));
+  app.get('/parent-view', ...serveProtectedPage('parent-view.html', ['super_admin', 'parent']));
+  app.get('/student-report', ...serveProtectedPage('student-report.html', ['super_admin', 'school_admin', 'parent']));
+  app.get('/user-management', ...serveProtectedPage('user-management.html', ['super_admin']));
 
   app.get('/api/health', async (req, res) => {
     const dbStatus = await getLiveDatabaseStatus();
     res.json({
       status: 'ok',
       timestamp: new Date().toISOString(),
-      mongo: 'connected',
+      mongo: isMongoConnected() ? 'connected' : 'in-memory-fallback',
       postgres: dbStatus,
     });
   });

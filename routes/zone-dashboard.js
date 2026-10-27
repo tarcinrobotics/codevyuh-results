@@ -11,6 +11,16 @@ const { getScopedSchool, filterSchoolsForUser } = require('../auth/access');
 
 const EXCLUDED_ZONES = ['Tarcin', 'ABC Matriculation School', 'XYZ Higher Secondary School'];
 
+const SUBMISSION_LEVEL_EXPR = `(CASE 
+  WHEN s."challengeId" ~ '-[1-4]-[0-9]+$' THEN (regexp_match(s."challengeId", '-([1-4])-[0-9]+$'))[1]::int 
+  WHEN s."trackId" = 'logic' THEN 1 
+  WHEN s."trackId" = 'debug' THEN 2 
+  WHEN s."trackId" = 'systems' THEN 3 
+  WHEN s."trackId" = 'python' THEN 4 
+  ELSE 1 
+END)`;
+
+
 const ZONE_TO_EVENT = {
   'KLN Vidyalaya CBSE Senior Secondary School': '0542016a-b443-421e-9ae0-a4787697b945',
   'KLN PRELIMS': '0542016a-b443-421e-9ae0-a4787697b945',
@@ -109,7 +119,7 @@ router.get('/summary', async (req, res) => {
   if (isExcludedZone(zone)) return res.json({});
   if (!zone) return res.json({});
   try {
-    const lvlJoin  = level  ? `AND s.level = ${parseInt(level, 10)}` : '';
+    const lvlJoin  = level  ? `AND ${SUBMISSION_LEVEL_EXPR} = ${parseInt(level, 10)}` : '';
     const statWhere = status === 'active'   ? 'AND s.id IS NOT NULL'
                     : status === 'inactive' ? 'AND s.id IS NULL' : '';
 
@@ -158,7 +168,7 @@ router.get('/top-students', async (req, res) => {
   if (isExcludedZone(zone)) return res.json([]);
   if (!zone) return res.json([]);
   try {
-    const lvlJoin   = level ? `AND s.level = ${parseInt(level, 10)}` : '';
+    const lvlJoin   = level ? `AND ${SUBMISSION_LEVEL_EXPR} = ${parseInt(level, 10)}` : '';
     const gradeWhere = grade ? `AND u.grade = '${safeGrade(grade)}'` : '';
     const having     = status === 'active'   ? 'HAVING COUNT(s.id) > 0'
                      : status === 'inactive' ? 'HAVING COUNT(s.id) = 0' : '';
@@ -218,7 +228,7 @@ router.get('/level-breakdown', async (req, res) => {
   if (isExcludedZone(zone)) return res.json([]);
   if (!zone) return res.json([]);
   try {
-    const lvlWhere   = level ? `AND s.level = ${parseInt(level, 10)}` : '';
+    const lvlWhere   = level ? `AND ${SUBMISSION_LEVEL_EXPR} = ${parseInt(level, 10)}` : '';
     const gradeWhere = grade ? `AND u.grade = '${safeGrade(grade)}'` : '';
 
     let sql;
@@ -227,7 +237,7 @@ router.get('/level-breakdown', async (req, res) => {
     if (eventId) {
       sql = `
         SELECT
-          s.level,
+          ${SUBMISSION_LEVEL_EXPR} AS level,
           COUNT(*)::int AS submissions,
           COALESCE(SUM(s.score),0)::bigint AS total_score,
           ROUND(AVG(COALESCE((s.data::jsonb->>'timeTaken')::numeric,0)/60.0)::numeric,2) AS avg_time_min,
@@ -237,14 +247,14 @@ router.get('/level-breakdown', async (req, res) => {
         JOIN "User" u ON s."userId" = u.id
         JOIN "UserEvent" ue ON ue."userId" = u.id
         WHERE ue."eventId" = $1::text ${lvlWhere} ${gradeWhere}
-        GROUP BY s.level
-        ORDER BY s.level ASC
+        GROUP BY ${SUBMISSION_LEVEL_EXPR}
+        ORDER BY level ASC
       `;
       params = [eventId];
     } else {
       sql = `
         SELECT
-          s.level,
+          ${SUBMISSION_LEVEL_EXPR} AS level,
           COUNT(*)::int AS submissions,
           COALESCE(SUM(s.score),0)::bigint AS total_score,
           ROUND(AVG(COALESCE((s.data::jsonb->>'timeTaken')::numeric,0)/60.0)::numeric,2) AS avg_time_min,
@@ -254,8 +264,8 @@ router.get('/level-breakdown', async (req, res) => {
         JOIN "User" u ON s."userId" = u.id
         JOIN "School" sc ON u."schoolId" = sc.id
         WHERE sc.name = $1::text ${lvlWhere} ${gradeWhere}
-        GROUP BY s.level
-        ORDER BY s.level ASC
+        GROUP BY ${SUBMISSION_LEVEL_EXPR}
+        ORDER BY level ASC
       `;
       params = [zone];
     }
@@ -353,7 +363,7 @@ router.get('/score-milestones', async (req, res) => {
   if (isExcludedZone(zone)) return res.json([]);
   if (!zone) return res.json([]);
   try {
-    const lvlWhere   = level ? `AND s.level = ${parseInt(level, 10)}` : '';
+    const lvlWhere   = level ? `AND ${SUBMISSION_LEVEL_EXPR} = ${parseInt(level, 10)}` : '';
     const gradeWhere = grade ? `AND u.grade = '${safeGrade(grade)}'` : '';
     const having = status === 'active'
       ? 'HAVING COUNT(s.id) > 0'
@@ -553,7 +563,7 @@ router.get('/gradewise-stats', async (req, res) => {
   if (!zone) return res.json([]);
   try {
     const gradeWhere = grade ? `AND u.grade = '${safeGrade(grade)}'` : '';
-    const lvlJoin    = level ? `AND s.level = ${parseInt(level, 10)}` : '';
+    const lvlJoin    = level ? `AND ${SUBMISSION_LEVEL_EXPR} = ${parseInt(level, 10)}` : '';
     const having     = status === 'active'   ? 'HAVING COUNT(s.id) > 0'
                      : status === 'inactive' ? 'HAVING COUNT(s.id) = 0' : '';
 

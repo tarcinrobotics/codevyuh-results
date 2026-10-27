@@ -30,8 +30,11 @@
 
   function allowedRoutes(role) {
     const common = new Set([]);
-    if (role === 'super_admin' || role === 'event_admin') {
+    if (role === 'super_admin') {
       return new Set(['/admin-overview', '/zone-dashboard', '/parent-view', '/user-management']);
+    }
+    if (role === 'event_admin') {
+      return new Set(['/admin-overview']);
     }
     if (role === 'school_admin') {
       return new Set(['/zone-dashboard']);
@@ -62,7 +65,7 @@
 
     right.querySelectorAll('[data-auth-control]').forEach((el) => el.remove());
 
-    if (user.role === 'super_admin' || user.role === 'event_admin') {
+    if (user.role === 'super_admin') {
       const manage = document.createElement('a');
       manage.href = '/user-management';
       manage.className = 'topbar-btn';
@@ -105,12 +108,7 @@
       }
     });
 
-    document.querySelectorAll('.route-select option').forEach((opt) => {
-      const val = opt.getAttribute('value');
-      if (val && !allow.has(val)) {
-        opt.remove();
-      }
-    });
+    document.querySelectorAll('.route-switcher, .route-select').forEach((el) => el.remove());
   }
 
   async function initAuthClient() {

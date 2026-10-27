@@ -163,3 +163,9 @@ export async function fetchEventLeaderboard(id, params = {}) {
 }
 
 
+
+export async function fetchEventScoreAnalytics(id) {
+  const res = await fetch(`${EVENT_API_BASE}/${encodeURIComponent(id)}/score-analytics`, { headers: { 'Accept': 'application/json' } });
+  if (!res.ok) throw new Error(`API /:id/score-analytics → ${res.status}`);
+  return res.json();
+}
