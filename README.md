@@ -62,10 +62,15 @@ npm install
 cp .env.example .env
 # Edit .env with your local PostgreSQL password
 
-# 3. Start development server
+# 3. Initialize an empty database from the included baseline backup
+npm run db:init
+
+# 4. Start development server
 npm run dev
 # Server boots at http://localhost:3001
 ```
+
+On Windows, run `npm run db:init` from PowerShell in the project folder. It uses the database connection settings in `.env` and restores `backup_codevyuh_db_20261021_193140.dump`. PostgreSQL's `pg_restore` command must be installed and available on `PATH`. The command creates the configured database if needed, or restores into it only if it is empty; it will refuse to overwrite a populated database. To generate sample tournament submissions after initialization, run `npm run seed:tournament` separately.
 
 ---
 

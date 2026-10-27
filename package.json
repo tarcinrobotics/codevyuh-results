@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "db:init": "node scripts/init-database.js",
     "seed:auth": "node scripts/seed-auth-users.js",
     "seed:tournament": "node scripts/seed-tournament-scores.js",
     "db:start": "powershell -Command \"Start-Service postgresql-x64-17\"",
