@@ -17,6 +17,7 @@ COPY routes/ ./routes/
 COPY public/ ./public/
 COPY scripts/ ./scripts/
 COPY queries/ ./queries/
+COPY data/ ./data/
 
 # Environment defaults
 ENV NODE_ENV=production
